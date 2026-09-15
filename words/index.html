@@ -81,7 +81,27 @@
   .spk{border:0;background:transparent;cursor:pointer;font-size:11pt;padding:0 2px}
   .empty{color:var(--muted);padding:40px 0}
   body[data-mode="dictate"] .only-card,body[data-mode="list"] .only-card{display:none}
-  body[data-mode="card"] .only-dictate,body[data-mode="list"] .only-dictate{display:none}
+  body[data-mode="card"] .only-dictate,body[data-mode="list"] .only-dictate,body[data-mode="quiz"] .only-dictate{display:none}
+  body[data-mode="card"] .only-quiz,body[data-mode="dictate"] .only-quiz,body[data-mode="list"] .only-quiz{display:none}
+  /* 练习模式（屏幕用，不打印） */
+  .quiz{width:100%;max-width:640px;margin:10px auto;background:#fff;border-radius:16px;padding:22px 24px;
+        box-shadow:0 1px 3px rgba(16,24,40,.08),0 14px 40px -18px rgba(16,24,40,.25);text-align:center}
+  .qprog{font-size:12.5px;color:var(--muted)}
+  .qword{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 6px}
+  .qtext{font-family:"Times New Roman",Georgia,serif;font-size:40px;font-weight:700;letter-spacing:.5px}
+  .qans{min-height:96px;border-top:1px dashed #e3e6ea;padding-top:12px;margin-top:8px;color:#8b95a5;font-size:13px;display:flex;flex-direction:column;gap:4px;justify-content:center}
+  .qans.on{color:#1c2024}
+  .qans .qline{font-size:17px}
+  .qans .qipa{font-family:"Times New Roman",serif;color:#2b6cb0}
+  .qans .qen{font-size:14px;color:#333}
+  .qans .qcn{font-size:13px;color:#777}
+  .qbtns{display:flex;gap:10px;justify-content:center;margin:14px 0 6px;flex-wrap:wrap}
+  .qbtns .btn{min-height:44px;padding:0 20px;font-size:15px}
+  .btn.ok{border-color:#1f9d55;color:#1f9d55;font-weight:600}
+  .qdone h2{margin:4px 0 8px;font-size:20px}
+  .qdone .qstat{color:#39424c;font-size:14px}
+  .qhint{font-size:12px;color:var(--muted);margin:6px 0 0}
+  @media print{ .quiz{display:none} }
   @page{size:A4 portrait;margin:11mm 12mm}
   @media print{
     body{background:#fff}
@@ -123,8 +143,31 @@
         <button class="seg" data-mode="card">单词卡</button>
         <button class="seg" data-mode="dictate">默写纸</button>
         <button class="seg" data-mode="list">听写表</button>
+        <button class="seg" data-mode="quiz">练习</button>
       </div>
       <div class="hint">卡片＝裁剪背诵用；默写纸＝看着中文/例句写单词；听写表＝家长报词用（打印时给孩子那列留空）。</div>
+    </div>
+
+    <div class="grp only-quiz">
+      <h2>练习设置</h2>
+      <div class="ctl"><label>出题</label>
+        <select id="qdir" style="font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+          <option value="en2zh">看英文 → 想中文</option>
+          <option value="zh2en">看中文 → 想英文</option>
+        </select><span class="val"></span>
+      </div>
+      <div class="hint">一个一个过，家长点「✅ 认识 / ❌ 不会」。<b>答错的词自动进生词本</b>，练完可以一键只练生词、或直接把生词做成默写纸打印。</div>
+    </div>
+
+    <div class="grp">
+      <h2>生词本</h2>
+      <div class="hint" id="wrongCount" style="margin:0 0 8px"></div>
+      <div class="rowbtn">
+        <button class="btn" id="wrongPractice">只练生词</button>
+        <button class="btn" id="wrongCopy">复制</button>
+        <button class="btn" id="wrongClear">清空</button>
+      </div>
+      <div class="hint">生词本存在<b>你自己的浏览器里</b>，不上传、不联网；换设备/清缓存会丢，重要的词记得用「复制」存一份。</div>
     </div>
 
     <div class="grp only-card">
@@ -132,6 +175,28 @@
       <div class="ctl"><label>每页列数</label><input type="range" id="cols" min="2" max="4" step="1"><span class="val" id="colsV"></span></div>
       <div class="ctl"><label>每页行数</label><input type="range" id="rows" min="2" max="6" step="1"><span class="val" id="rowsV"></span></div>
       <div class="hint">3 列 × 4 行 = 每页 12 张卡；想给一年级写大字就用 2 × 3。</div>
+    </div>
+
+    <div class="grp only-quiz">
+      <h2>练习设置</h2>
+      <div class="ctl"><label>出题</label>
+        <select id="qdir" style="font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+          <option value="en2zh">看英文 → 想中文</option>
+          <option value="zh2en">看中文 → 想英文</option>
+        </select><span class="val"></span>
+      </div>
+      <div class="hint">一个一个过，家长点「✅ 认识 / ❌ 不会」。<b>答错的词自动进生词本</b>，练完可以一键只练生词、或直接把生词做成默写纸打印。</div>
+    </div>
+
+    <div class="grp">
+      <h2>生词本</h2>
+      <div class="hint" id="wrongCount" style="margin:0 0 8px"></div>
+      <div class="rowbtn">
+        <button class="btn" id="wrongPractice">只练生词</button>
+        <button class="btn" id="wrongCopy">复制</button>
+        <button class="btn" id="wrongClear">清空</button>
+      </div>
+      <div class="hint">生词本存在<b>你自己的浏览器里</b>，不上传、不联网；换设备/清缓存会丢，重要的词记得用「复制」存一份。</div>
     </div>
 
     <div class="grp only-card">

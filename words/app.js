@@ -11,8 +11,10 @@
     words: '', mode: 'card', cols: 3, rows: 4,
     ipa: 1, syl: 1, zh: 1, en: 1, cn: 1,        // 卡片显示项
     hintZh: 1, hintIpa: 1, hintBlank: 1,        // 默写纸提示
-    shuffle: 0, headText: '英语单词卡', footText: ''
+    shuffle: 0, headText: '英语单词卡', footText: '',
+    qdir: 'en2zh'                             // 出题方向：en2zh 看英文想中文 / zh2en 看中文想英文
   };
+  var WK = 'words_wrong_v1';                  // 生词本（存本机浏览器）
   var BOOLK = ['ipa', 'syl', 'zh', 'en', 'cn', 'hintZh', 'hintIpa', 'hintBlank', 'shuffle'];
   var NUMK = ['cols', 'rows'];
 
@@ -20,6 +22,7 @@
     var q = new URLSearchParams(location.search);
     if (q.has('words')) cfg.words = q.get('words');
     if (q.has('mode')) cfg.mode = q.get('mode');
+    if (q.has('qdir')) cfg.qdir = q.get('qdir');
     NUMK.forEach(function (k) { if (q.has(k)) { var v = parseInt(q.get(k), 10); if (!isNaN(v)) cfg[k] = v; } });
     BOOLK.forEach(function (k) { if (q.has(k)) cfg[k] = q.get(k) === '0' ? 0 : 1; });
     if (q.has('head')) cfg.headText = q.get('head');
@@ -27,7 +30,7 @@
   }
   function writeURL() {
     var q = new URLSearchParams();
-    q.set('words', cfg.words); q.set('mode', cfg.mode);
+    q.set('words', cfg.words); q.set('mode', cfg.mode); q.set('qdir', cfg.qdir);
     NUMK.concat(BOOLK).forEach(function (k) { q.set(k, cfg[k]); });
     q.set('head', cfg.headText); q.set('foot', cfg.footText);
     history.replaceState(null, '', location.pathname + '?' + q.toString());
@@ -68,8 +71,100 @@
     return out;
   }
 
+  /* ---------- 生词本（本机 localStorage，不上传）---------- */
+  function wrongList() { try { return JSON.parse(localStorage.getItem(WK) || '[]'); } catch (e) { return []; } }
+  function setWrong(arr) { try { localStorage.setItem(WK, JSON.stringify(arr)); } catch (e) { } updateWrongUI(); }
+  function addWrong(w) { var a = wrongList(); if (a.indexOf(w) < 0) { a.push(w); setWrong(a); } }
+  function updateWrongUI() {
+    var n = wrongList().length;
+    var c = $('#wrongCount'); if (c) c.textContent = n ? ('生词本：' + n + ' 个') : '生词本：空';
+  }
+
+  /* ---------- 练习模式（抽认卡，答错自动进生词本）---------- */
+  var quiz = { list: [], i: 0, right: 0, wrong: [], revealed: false };
+  function startQuiz(items) {
+    quiz = { list: items.slice(), i: 0, right: 0, wrong: [], revealed: false };
+    drawQuiz();
+  }
+  function drawQuiz() {
+    var stage = $('#preview'); stage.innerHTML = '';
+    var box = el('div', 'quiz');
+    if (!quiz.list.length) { box.appendChild(el('p', 'empty', '没有要练的词，先在上面填词表')); stage.appendChild(box); return; }
+
+    if (quiz.i >= quiz.list.length) {                       // 一轮结束
+      var done = el('div', 'qdone');
+      done.appendChild(el('h2', '', '这一轮结束'));
+      done.appendChild(el('p', 'qstat', '认识 ' + quiz.right + ' 个 · 生词 ' + quiz.wrong.length + ' 个'
+        + (quiz.wrong.length ? '：' + quiz.wrong.join('、') : '')));
+      if (quiz.wrong.length) {
+        var b1 = el('button', 'btn primary', '只练这 ' + quiz.wrong.length + ' 个生词');
+        b1.addEventListener('click', function () { startQuiz(quiz.wrong.map(function (w) { return { w: w }; })); });
+        var b2 = el('button', 'btn', '把生词做成默写纸');
+        b2.addEventListener('click', function () {
+          cfg.words = quiz.wrong.join('\n'); cfg.mode = 'dictate';
+          $('#words').value = cfg.words; syncLabels(); onChange();
+        });
+        done.appendChild(el('div', 'qbtns')).appendChild(b1);
+        var bb = done.querySelector('.qbtns'); bb.appendChild(b2);
+      }
+      var b3 = el('button', 'btn', '再练一遍全部');
+      b3.addEventListener('click', function () { startQuiz(quiz.list); });
+      done.appendChild(el('div', 'qbtns')).appendChild(b3);
+      box.appendChild(done);
+      box.appendChild(el('p', 'qhint', '答错的词已经自动记进「生词本」了，下次可以一键只练它们。'));
+      stage.appendChild(box); fit(); return;
+    }
+
+    var it = quiz.list[quiz.i];
+    box.appendChild(el('div', 'qprog', '第 ' + (quiz.i + 1) + ' / ' + quiz.list.length + ' 个'
+      + '　·　认识 ' + quiz.right + ' · 生词 ' + quiz.wrong.length));
+    var q = el('div', 'qword');
+    var front = cfg.qdir === 'en2zh' ? it.w : (it.zh || it.w);
+    q.appendChild(el('div', 'qtext', front));
+    q.appendChild(spkBtn(it.w));
+    box.appendChild(q);
+
+    var ans = el('div', 'qans' + (quiz.revealed ? ' on' : ''));
+    ans.appendChild(el('div', 'qline', cfg.qdir === 'en2zh' ? (it.zh ? '中文：' + it.zh : '（离线词典未收录）') : ('英文：' + it.w)));
+    if (it.ipa) ans.appendChild(el('div', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'
+      + (it.syl ? '　' + it.syl : '')));
+    if (it.en) ans.appendChild(el('div', 'qen', it.en));
+    if (it.cn) ans.appendChild(el('div', 'qcn', it.cn));
+    box.appendChild(ans);
+
+    var btns = el('div', 'qbtns');
+    if (!quiz.revealed) {
+      var bs = el('button', 'btn primary', '看答案');
+      bs.addEventListener('click', function () { quiz.revealed = true; drawQuiz(); });
+      btns.appendChild(bs);
+    }
+    var bno = el('button', 'btn', '❌ 不会');
+    bno.addEventListener('click', function () { quiz.wrong.push(it.w); addWrong(it.w); quiz.i++; quiz.revealed = false; drawQuiz(); });
+    var byes = el('button', 'btn ok', '✅ 认识');
+    byes.addEventListener('click', function () { quiz.right++; quiz.i++; quiz.revealed = false; drawQuiz(); });
+    btns.appendChild(bno); btns.appendChild(byes);
+    box.appendChild(btns);
+    box.appendChild(el('p', 'qhint', '家长拿手机点就行；答错的自动进生词本。'));
+    stage.appendChild(box); fit();
+  }
+
   /* ---------- 朗读（屏幕用，不打印）---------- */
+  var audioCache = {};
   function speak(w) {
+    var k = w.toLowerCase();
+    if (audioCache[k] === undefined && navigator.onLine !== false) {
+      audioCache[k] = null;
+      fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(k))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          var a = d && (d[0].phonetics || []).filter(function (x) { return x.audio; })[0];
+          if (a) audioCache[k] = a.audio;
+        }).catch(function () { });
+    }
+    if (audioCache[k]) { try { new Audio(audioCache[k]).play(); return; } catch (e) { } }
+    speakTTS(w);
+  }
+  function speakTTS(w) {
     if (!('speechSynthesis' in window)) return;
     try {
       speechSynthesis.cancel();
@@ -147,6 +242,7 @@
     if (!words.length) { stage.innerHTML = '<p class="empty">请在上面填词表</p>'; $('#count').textContent = ''; return; }
     $('#status').textContent = '正在查词…';
     Promise.all(words.map(lookup)).then(function (items) {
+      if (cfg.mode === 'quiz') { $('#status').textContent = items.length + ' 个词'; $('#count').textContent = '练习模式（不打印）'; startQuiz(items); return; }
       var pages = [], sheet = null, addSheet = function () {
         sheet = el('div', 'sheet');
         var t = el('div', 'sheettitle');
@@ -204,6 +300,7 @@
   function syncLabels() {
     NUMK.forEach(function (k) { var v = $('#' + k + 'V'); if (v) v.textContent = cfg[k]; });
     $$('.seg[data-mode]').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === cfg.mode); });
+    updateWrongUI();
     $$('input[type=checkbox]').forEach(function (n) { if (n.id in cfg) n.checked = !!cfg[n.id]; });
     document.body.dataset.mode = cfg.mode;
   }
@@ -222,6 +319,21 @@
     $('#shuffleNow').addEventListener('click', function () { var w = parseWords(); cfg.shuffle = 0; $('#shuffle').checked = false;
       for (var i = w.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = w[i]; w[i] = w[j]; w[j] = t; }
       cfg.words = w.join('\n'); $('#words').value = cfg.words; onChange(); });
+    var qd = $('#qdir');
+    qd.value = cfg.qdir;
+    qd.addEventListener('change', function () { cfg.qdir = this.value; onChange(); });
+    $('#wrongPractice').addEventListener('click', function () {
+      var a = wrongList(); if (!a.length) return alert('生词本还是空的：先用「练习」模式过一遍，答错的词会自动进来。');
+      cfg.words = a.join('\n'); cfg.mode = 'quiz'; $('#words').value = cfg.words; syncLabels(); onChange();
+    });
+    $('#wrongCopy').addEventListener('click', function () {
+      var a = wrongList(); if (!a.length) return alert('生词本是空的');
+      (navigator.clipboard ? navigator.clipboard.writeText(a.join('\n')) : Promise.reject())
+        .then(function () { alert('已复制 ' + a.length + ' 个生词'); }).catch(function () { prompt('生词本：', a.join('\n')); });
+    });
+    $('#wrongClear').addEventListener('click', function () {
+      if (confirm('清空生词本？')) setWrong([]);
+    });
     $('#print').addEventListener('click', function () { window.print(); });
     $('#copy').addEventListener('click', function () { var b = this;
       (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject())
@@ -231,9 +343,13 @@
   }
   var DEMO = (window.UNIT1 ? Object.keys(window.UNIT1) : ['family', 'mother', 'father']).join('\n');
   var t = null;
-  function onChange() { writeURL(); syncLabels(); clearTimeout(t); t = setTimeout(render, 150); }
+  function onChange() {
+    try { localStorage.setItem('words_last', cfg.words); } catch (e) { }
+    writeURL(); syncLabels(); clearTimeout(t); t = setTimeout(render, 150);
+  }
 
   readURL();
+  if (!cfg.words) { try { cfg.words = localStorage.getItem('words_last') || ''; } catch (e) { } }
   if (!cfg.words) cfg.words = DEMO;
   bind(); syncLabels(); render();
 })();
