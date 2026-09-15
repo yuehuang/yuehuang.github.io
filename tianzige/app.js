@@ -9,17 +9,19 @@
   var DEFAULT_CHARS = '一二三上口耳目手日火田禾六七八十';
 
   var PRESETS = {
-    mo:   { autoPage: 1, label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
-    zi:   { autoPage: 1, label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
-    bi:   { autoPage: 1, label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
+    /* 每字一行：范字 + 2 格描红 + 空格，一个字只练一行（省纸，当前默认） */
     one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 2, rows: 1, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
-    mo2:  { autoPage: 1, label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
+    /* 描红练习：范字 + 3 格描红 × 2 行（刚起步、手还生的时候） */
+    mo:   { autoPage: 1, label: '描红练习', perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    /* 笔顺分解：范字上标 ①②③，右侧笔顺条逐笔拆开 */
+    bi:   { autoPage: 1, label: '笔顺分解', perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 }
   };
 
   var cfg = {
     chars: DEFAULT_CHARS, preset: 'one', grid: 'tian', paper: 'A4', orient: 'portrait',
     perPage: 6, perRow: 10, cell: 15, gap: 1.6, trace: 2, rows: 1,
-    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0, idioms: 1
+    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0, idioms: 1,
+    headText: '写字练习', footText: '描红 → 临写 → 自查：这一笔是不是压在横中线上？'
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -42,6 +44,8 @@
     if (q.has('paper')) cfg.paper = PAPER[q.get('paper')] ? q.get('paper') : 'A4';
     if (q.has('orient')) cfg.orient = q.get('orient') === 'landscape' ? 'landscape' : 'portrait';
     if (q.has('gap')) cfg.gap = parseFloat(q.get('gap')) || cfg.gap;
+    if (q.has('head')) cfg.headText = q.get('head');
+    if (q.has('foot')) cfg.footText = q.get('foot');
     NUMK.forEach(function (k) { if (q.has(k)) cfg[k] = Math.max(0, parseInt(q.get(k), 10) || cfg[k]); });
     BOOLK.forEach(function (k) { if (q.has(k)) cfg[k] = q.get(k) === '0' ? 0 : 1; });
   }
@@ -49,6 +53,7 @@
     var q = new URLSearchParams();
     q.set('chars', cfg.chars); q.set('preset', cfg.preset); q.set('grid', cfg.grid);
     q.set('paper', cfg.paper); q.set('orient', cfg.orient); q.set('gap', cfg.gap);
+    q.set('head', cfg.headText); q.set('foot', cfg.footText);
     NUMK.concat(BOOLK).forEach(function (k) { q.set(k, cfg[k]); });
     history.replaceState(null, '', location.pathname + '?' + q.toString());
   }
@@ -338,13 +343,14 @@
       var sheet = el('div', 'sheet');
       if (pg.title && cfg.title) {
         var t = el('div', 'sheettitle');
-        t.appendChild(el('h1', '', '写字练习 · ' + (cfg.grid === 'mi' ? '米字格' : '田字格')));
-        t.appendChild(el('div', 'sub', '生字 ' + cfg.chars.replace(/[^一-龥]/g, '').length + ' 个 · ' + cfg.paper
+        t.appendChild(el('h1', '', cfg.headText || '写字练习'));
+        t.appendChild(el('div', 'sub', '生字 ' + cfg.chars.replace(/[^一-龥]/g, '').length + ' 个 · '
+          + (cfg.grid === 'mi' ? '米字格' : '田字格') + ' · ' + cfg.paper
           + (cfg.orient === 'landscape' ? ' 横向' : ' 纵向') + ' · 第 ' + (pi + 1) + ' / ' + total + ' 页'));
         sheet.appendChild(t);
       }
       pg.items.forEach(function (b) { sheet.appendChild(b); });
-      sheet.appendChild(el('div', 'sheetfoot', '描红 → 临写 → 自查：这一笔是不是压在横中线上？'));
+      if (cfg.footText) sheet.appendChild(el('div', 'sheetfoot', cfg.footText));
       wrap.appendChild(sheet);
       preview.appendChild(wrap);
     });
@@ -409,6 +415,10 @@
     $('#orient').addEventListener('change', function () { cfg.orient = this.value; onChange(); });
     $('#chars').value = cfg.chars;
     $('#chars').addEventListener('input', function () { cfg.chars = $('#chars').value; onChange(); });
+    $('#headText').value = cfg.headText;
+    $('#headText').addEventListener('input', function () { cfg.headText = this.value; onChange(); });
+    $('#footText').value = cfg.footText;
+    $('#footText').addEventListener('input', function () { cfg.footText = this.value; onChange(); });
     $('#print').addEventListener('click', function () { window.print(); });
     $('#copy').addEventListener('click', function () {
       var btn = this;

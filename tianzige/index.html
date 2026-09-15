@@ -116,12 +116,11 @@
     <div class="grp">
       <h2>模板</h2>
       <div class="presets">
+        <button class="preset" data-preset="one">每字一行</button>
         <button class="preset" data-preset="mo">描红练习</button>
-        <button class="preset" data-preset="zi">范字 + 空格</button>
         <button class="preset" data-preset="bi">笔顺分解</button>
-        <button class="preset" data-preset="mo2">默写听写</button>
-        <button class="preset span2" data-preset="one">每字一行</button>
       </div>
+      <div class="hint">「每字一行」＝范字 + 2 格描红 + 空格，一个字只练一行（省纸）。<b>描红格数拖到 0</b> 就变成「范字 + 纯空格」；<b>练习行数拖到 2~3</b> 就多练几行。
       <div class="hint">「范字 + 空格」最接近课堂生字本：第一格是范字，后面全留白让孩子自己写。下面的开关可以再微调。</div>
     </div>
 
@@ -152,6 +151,13 @@
       <div class="row2"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
       <div class="row2"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
       <div class="hint">描红设 0 = 只有范字 + 空格，孩子直接在田字格里写（推荐）。<br>练习行数 1 = 每个字只练一行（省纸）；「格子自动铺满行宽」= 按每行几格自动算格子大小，每行 1 格就是超大字。</div>
+    </div>
+
+    <div class="grp">
+      <h2>页眉 / 页脚</h2>
+      <input type="text" id="headText" placeholder="页眉标题，例如：写字练习" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px;margin-bottom:6px">
+      <input type="text" id="footText" placeholder="页脚文字（留空则不显示）" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px">
+      <div class="hint">页眉下面那行（生字个数 / 格型 / 纸张 / 页码）是自动的。想加名字、日期就填这里。</div>
     </div>
 
     <div class="grp">
