@@ -18,23 +18,17 @@
 | v2 | 互动笔顺描红（基于 hanzi-writer：逐笔动画 + 描红打分） | 待做 |
 | v2.1 | 舒尔特方格 / 专注力打卡表 / 拼音卡 / 识字卡 / 口算 | 按需 |
 
-## 2. 已调研的现成项目（2026-09-14 查）
+## 2. 同类工具与数据来源
 
-| 项目 | Star | 说明 |
+只保留做得成的三个（完整调研与数据来源见 [docs/数据来源与版式.md](docs/数据来源与版式.md)）：
+
+| 站点 | 优点 | 差异 |
 |---|---|---|
-| [bunian/tianzigebishun](https://github.com/bunian/tianzigebishun) | ★390 | 田字格笔顺生成 |
-| [CyangHH/zt](https://github.com/CyangHH/zt) | ★138 | 田字格/米字格字帖，支持笔顺、拼音，在线生成器 |
-| [hyman-ren/tianzige](https://github.com/hyman-ren/tianzige) | ★33 | 田字格字帖生成器 |
-| [caicaicai/miaozitie](https://github.com/caicaicai/miaozitie) | ★28 | 喵字帖 · 小学生笔画练字帖生成器（[在线](https://miaozitie.80wdb.com/)） |
-| [HinsChueng/zitie](https://github.com/HinsChueng/zitie) | ★24 | Python 生成田字格字帖 |
-| [rickytan/HanZiFun](https://github.com/rickytan/HanZiFun) | ★10 | 离线可用的写字练习本生成器：描红 / 笔顺分解 / 空白格纸 / 文章临摹（[在线](https://rickytan.cn/HanZiFun/)） |
-| [njhongguan/chinese-calligraphy-generator](https://github.com/njhongguan/chinese-calligraphy-generator) | ★5 | A4 打印，支持诗词/文章排版 |
-| [ibeilly/hanzi-practice](https://github.com/ibeilly/hanzi-practice) | ★1 | 网页练习：田字格笔顺动画、拼音与**朗读** |
-| [oakZ/quxiehanzi](https://github.com/oakZ/quxiehanzi) | ★1 | 儿童笔顺演示 + 精细轨迹书写，内置古诗词、文本播报 |
-| 底层库 [chanind/hanzi-writer](https://github.com/chanind/hanzi-writer) | — | 笔顺动画 + 描红打分（quiz 模式），本项目 v2 计划复用 |
+| [HanZiFun](https://rickytan.cn/HanZiFun/) | 功能最全（米字格/多纸型/导出 PDF/离线） | 缺「范字 + 空格」混合版式 |
+| [喵字帖](https://miaozitie.80wdb.com/) | 工具箱：练字 + 听写 + 古诗 + 朗读 | 无占格讲解 |
+| [ibeilly](https://ibeilly.github.io/hanzi-practice/) | github.io 可用，笔顺动画 + 朗读 | 无打印排版 |
 
-**结论**：通用「田字格生成」已被做得很透，本项目不再往「通用」方向投入，只保留两条差异线：
-① 中文**占格口诀**（对应老师课堂讲法，现有项目基本没有）；② 与课本**生字表同步**的成品材料。
+数据来源：拼音 [pinyin-data](https://github.com/mozillazg/pinyin-data)（MIT）· 笔顺/字形/中心线 [hanzi-writer-data](https://github.com/chanind/hanzi-writer-data)（Arphic PL）· 顿挫无开源数据，按笔画类型模板化自建。
 
 ## 3. 容量规划（1 GB / 100 GB 是需要盯的两个数）
 
