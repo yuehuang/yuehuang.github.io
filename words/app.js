@@ -123,7 +123,6 @@
     var prompt = el('div', 'qprompt');
     if (en2zh) {
       prompt.appendChild(writingBlock(it.w, 9));          // 看英文：单词压在四线三格上
-      prompt.appendChild(spkBtn(it.w));
     } else {
       prompt.appendChild(el('div', 'qtext', it.zh || it.w));   // 看中文：只给中文
       prompt.appendChild(writingBlock('', 9));                 // 下面留空的四线三格，让孩子写
@@ -133,7 +132,10 @@
     if (quiz.revealed) {
       var ans = el('div', 'qans on');
       if (!en2zh) ans.appendChild(writingBlock(it.w, 9));      // 中→英：答案给带线的单词
-      if (it.ipa) ans.appendChild(el('div', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+      var qi = el('div', 'wiparow');
+      if (it.ipa) qi.appendChild(el('span', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+      qi.appendChild(spkBtn(it.w));                       // 喇叭跟着音标（中→英时不会提前泄题）
+      ans.appendChild(qi);
       var l3 = el('div', 'qpos');
       if (it.pos) l3.appendChild(el('span', 'posTag', it.pos));
       if (it.zh) l3.appendChild(el('span', 'qzh', it.zh));
@@ -208,7 +210,7 @@
     var st = [
       { w: 1.2, c: '#8ea4bc', dash: '' },          // ① 顶线：粗
       { w: 0.6, c: '#cbd6e2', dash: '' },          // ② 细
-      { w: 0.6, c: '#5b9bd5', dash: '3.2 2.4' },   // ③ 基线：细 · 虚线 · 亮蓝
+      { w: 0.7, c: '#e0a458', dash: '3.4 2.6' },   // ③ 基线：细 · 虚线 · 暖橙（突出但不刺眼）
       { w: 1.2, c: '#8ea4bc', dash: '' }           // ④ 底线：粗
     ];
     st.forEach(function (k, i) {
@@ -237,9 +239,11 @@
   /* ---------- 三种输出 ---------- */
   function cardItem(it, fs) {
     var c = el('div', 'wcard');
-    c.appendChild(spkBtn(it.w));                       // 🔊 屏幕用，右上角
     c.appendChild(writingBlock(it.w, 10, fs));         // ① 单词 + 四线三格（全篇统一字号）
-    if (cfg.ipa && it.ipa) c.appendChild(el('div', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+    var ipaRow = el('div', 'wiparow');                 // ② 音标（喇叭就放它右边）
+    if (cfg.ipa && it.ipa) ipaRow.appendChild(el('span', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+    ipaRow.appendChild(spkBtn(it.w));
+    c.appendChild(ipaRow);
     var l3 = el('div', 'wpos');
     if (cfg.pos && it.pos) l3.appendChild(el('span', 'posTag', it.pos));
     if (cfg.zh && it.zh) l3.appendChild(el('span', 'wzh', it.zh));
@@ -311,7 +315,7 @@
           if (i % perPage === 0) addSheet();
           if (i % perPage === 0) { }
           var grid = sheet.querySelector('.wgrid');
-          if (!grid) { grid = el('div', 'wgrid'); grid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)'; grid.style.setProperty('--cardh', ((273 - 26 - (cfg.rows - 1) * 3) / cfg.rows).toFixed(1) + 'mm'); sheet.appendChild(grid); }
+          if (!grid) { grid = el('div', 'wgrid'); grid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)'; grid.style.setProperty('--cardh', ((275 - 18 - (cfg.rows - 1) * 4) / cfg.rows).toFixed(1) + 'mm'); sheet.appendChild(grid); }
           grid.appendChild(cardItem(items[i], fsUni));
         }
       } else if (cfg.mode === 'dictate') {

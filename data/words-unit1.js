@@ -1,4 +1,4 @@
-/* 示例词表：家庭主题 24 词（人工整理：音节 / 词性 / 中文 / 例句）*/
+/* 示例词表：家庭主题 24 词（人工整理：音标 / 音节 / 词性 / 中文 / 例句）*/
 window.UNIT1={
  "family": {
   "ipa": "ˈfæməli",
@@ -9,7 +9,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "parents": {
-  "ipa": "",
+  "ipa": "ˈpeərənts",
   "syl": "par·ents",
   "zh": "父母",
   "en": "My parents are at home.",
@@ -17,7 +17,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "mother": {
-  "ipa": "ˈmʌðə",
+  "ipa": "ˈmʌðə(r)",
   "syl": "moth·er",
   "zh": "妈妈",
   "en": "My mother is a teacher.",
@@ -25,7 +25,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "father": {
-  "ipa": "ˈfɑːðə",
+  "ipa": "ˈfɑːðə(r)",
   "syl": "fa·ther",
   "zh": "爸爸",
   "en": "My father likes apples.",
@@ -41,7 +41,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "daughter": {
-  "ipa": "ˈdɒːtə",
+  "ipa": "ˈdɔːtə(r)",
   "syl": "daugh·ter",
   "zh": "女儿",
   "en": "She is my daughter.",
@@ -49,7 +49,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "brother": {
-  "ipa": "ˈbrʌðə",
+  "ipa": "ˈbrʌðə(r)",
   "syl": "broth·er",
   "zh": "哥哥；弟弟",
   "en": "I have one brother.",
@@ -57,7 +57,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "sister": {
-  "ipa": "ˈsistə",
+  "ipa": "ˈsɪstə(r)",
   "syl": "sis·ter",
   "zh": "姐姐；妹妹",
   "en": "My sister is six.",
@@ -65,7 +65,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "grandmother": {
-  "ipa": "ˈgrændmʌðə",
+  "ipa": "ˈɡrænmʌðə(r)",
   "syl": "grand·moth·er",
   "zh": "奶奶；外婆",
   "en": "My grandmother makes cakes.",
@@ -73,7 +73,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "grandfather": {
-  "ipa": "ˈgrændfɑːðə",
+  "ipa": "ˈɡrænfɑːðə(r)",
   "syl": "grand·fa·ther",
   "zh": "爷爷；外公",
   "en": "My grandfather is old.",
@@ -89,7 +89,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "uncle": {
-  "ipa": "ʌŋkl",
+  "ipa": "ˈʌŋkl",
   "syl": "un·cle",
   "zh": "叔叔；舅舅",
   "en": "My uncle is tall.",
@@ -97,7 +97,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "cousin": {
-  "ipa": "ˈkʌzən",
+  "ipa": "ˈkʌzn",
   "syl": "cous·in",
   "zh": "表哥；表妹",
   "en": "My cousin is my friend.",
@@ -105,7 +105,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "baby": {
-  "ipa": "ˈbeibi",
+  "ipa": "ˈbeɪbi",
   "syl": "ba·by",
   "zh": "宝宝",
   "en": "The baby is sleeping.",
@@ -113,7 +113,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "boy": {
-  "ipa": "bɒi",
+  "ipa": "bɔɪ",
   "syl": "boy",
   "zh": "男孩",
   "en": "He is a boy.",
@@ -121,7 +121,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "girl": {
-  "ipa": "gəːl",
+  "ipa": "ɡɜːl",
   "syl": "girl",
   "zh": "女孩",
   "en": "She is a girl.",
@@ -145,7 +145,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "woman": {
-  "ipa": "ˈwumən",
+  "ipa": "ˈwʊmən",
   "syl": "wom·an",
   "zh": "女人",
   "en": "The woman is my mother.",
@@ -153,7 +153,7 @@ window.UNIT1={
   "pos": "n. 名词"
  },
  "this": {
-  "ipa": "θis",
+  "ipa": "ðɪs",
   "syl": "this",
   "zh": "这个",
   "en": "This is my mother.",

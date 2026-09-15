@@ -48,19 +48,21 @@
   /* 单词卡 */
   .wgrid{display:grid;gap:3mm}
   .wcard{border:1px dashed #cfcfcf;border-radius:3mm;padding:3mm;height:var(--cardh,62mm);position:relative;
-         display:flex;flex-direction:column;gap:1mm;overflow:hidden;break-inside:avoid;text-align:center}
+         display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;break-inside:avoid;text-align:center;
+         justify-content:center}   /* 内容垂直居中：例句既不贴底，卡片也不会显得上重下空 */
   .wcard>*{flex:0 0 auto}                      /* 关键：不许把四线三格压扁，否则每张卡大小不一 */
-  .wcard>.spk{position:absolute}
+
   .wtop{display:flex;align-items:baseline;justify-content:space-between}
   .wword{font-family:"Times New Roman",Georgia,serif;font-size:16pt;letter-spacing:.3px}
   .wsub{display:flex;gap:3mm;align-items:baseline;font-family:"Times New Roman",serif;font-size:10pt}
   .wlines{display:block;width:100%;height:auto;margin-bottom:1mm}
-  .wipa{font-family:"Times New Roman",Georgia,serif;font-size:12pt;color:#2b6cb0;margin-top:1mm}
+  .wiparow{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:1.5mm}
+  .wipa{font-family:"Times New Roman",Georgia,serif;font-size:12pt;color:#2b6cb0}
   .wpos{display:flex;align-items:baseline;gap:2.5mm;margin-top:.5mm;justify-content:center}
   .posTag{font-size:8.5pt;color:#5b6b7c;background:#eef2f7;border-radius:3px;padding:.5mm 1.5mm;white-space:nowrap}
   .wzh{font-size:12.5pt}
   .wsylBig{font-family:"Times New Roman",Georgia,serif;font-size:15pt;color:#c77700;letter-spacing:.5px;margin-top:.5mm}
-  .wen{font-size:9.5pt;color:#333;margin-top:auto}
+  .wen{font-size:9.5pt;color:#333;margin-top:2mm}   /* 不再 margin-top:auto，例句就不会贴着卡片底 */
   .wcn{font-size:8.5pt;color:#777}
   .wtip{font-size:7.5pt;color:#c77700}
   /* 默写纸 */
