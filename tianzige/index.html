@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>田字格字帖生成器</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  :root{ --fit:1; }
+  body{background:#eef0f4}
+  /* ---------- 顶部 ---------- */
+  .bar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);
+       display:flex;align-items:center;gap:12px;padding:10px 16px;flex-wrap:wrap}
+  .bar h1{font-size:16.5px;margin:0}
+  .bar .sub{color:var(--muted);font-size:12.5px}
+  .bar .spacer{flex:1}
+  .btn{font:inherit;font-size:14px;min-height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--line);
+       background:#fff;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:#cfd6de}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.06)}
+  /* ---------- 布局 ---------- */
+  .layout{display:flex;align-items:flex-start;gap:0}
+  .panel{width:320px;flex:0 0 320px;background:#fff;border-right:1px solid var(--line);
+         padding:16px;position:sticky;top:59px;max-height:calc(100vh - 59px);overflow:auto}
+  .panel h2{font-size:12.5px;color:var(--muted);letter-spacing:1px;margin:0 0 8px}
+  .panel .grp{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .panel .grp:last-child{border:0}
+  textarea{width:100%;min-height:88px;border:1px solid var(--line);border-radius:9px;padding:10px;
+           font:inherit;font-size:15px;line-height:1.8;resize:vertical;outline:none}
+  textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .row2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+  .row2 label{font-size:13.5px;color:#39424c}
+  .row2 input[type=range]{flex:1 1 auto;max-width:140px;accent-color:var(--accent)}
+  .row2 .val{font-size:12.5px;color:var(--muted);min-width:44px;text-align:right}
+  .row2 input[type=number]{width:64px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;font:inherit;font-size:13px}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+  .checks label{display:flex;align-items:center;gap:6px;font-size:13.5px;color:#39424c;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  #status{font-size:12.5px;color:var(--muted)}
+  /* ---------- 预览 ---------- */
+  .stage{flex:1 1 auto;min-width:0;padding:18px 12px 60px;display:flex;flex-direction:column;align-items:center}
+  .stage-top{width:100%;max-width:210mm;display:flex;justify-content:space-between;align-items:center;
+             color:var(--muted);font-size:12.5px;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+  .sheet-wrap{width:calc(210mm * var(--fit));margin:0 auto 16px;overflow:hidden}
+  .sheet{width:210mm;min-height:297mm;background:#fff;padding:11mm 12mm;
+         transform:scale(var(--fit));transform-origin:top left;
+         box-shadow:0 1px 3px rgba(16,24,40,.1),0 10px 30px -14px rgba(16,24,40,.25)}
+  .measure{position:absolute;left:-9999px;top:0;box-shadow:none;transform:none !important;width:210mm}
+  .sheettitle h1{font-size:15pt;margin:0 0 2mm}
+  .sheettitle .sub{font-size:9pt;color:#666;margin-bottom:3mm}
+  .sheetfoot{font-size:8pt;color:#999;border-top:1px solid #eee;margin-top:4mm;padding-top:2mm;text-align:center}
+  /* 单字块 */
+  .block{margin-bottom:4mm;break-inside:avoid}
+  .bhead{display:flex;align-items:center;gap:4mm;border-bottom:1px solid #eee;padding-bottom:1.5mm}
+  .bglyph{width:12mm;height:12mm;flex:0 0 auto}
+  .binfo{flex:1 1 auto;min-width:0}
+  .bchar{font-size:15pt;font-weight:700}
+  .bpy{font-family:"Times New Roman",serif;font-size:12pt;color:#333;margin-left:2mm}
+  .bmeta{font-size:9pt;color:#555}
+  .bmeta .order{color:#2b6cb0}
+  .bmeta .words{color:#2b6cb0}
+  .bmeta .warn{color:#c77700}
+  .strip{display:flex;gap:1.6mm;align-items:flex-start}
+  .sitem{text-align:center}
+  .sitem svg{width:12mm;height:12mm}
+  .sitem .lb{font-size:7pt;color:#666;margin-top:.5mm}
+  .sitem .lb b{color:#d0342c}
+  .row{display:flex;gap:1.6mm;margin-top:2mm}
+  .row .cell{width:var(--cell,24mm);height:var(--cell,24mm);flex:0 0 auto;display:block}
+  .bfoot{font-size:9pt;color:#444;margin-top:1.5mm}
+  .bfoot .tipk{color:#444}
+  .bfoot .badge{font-size:7.5pt;color:#999;margin-left:1.5mm}
+  .empty{color:var(--muted);padding:40px 0}
+  /* ---------- 打印 ---------- */
+  @page{size:A4 portrait;margin:11mm 12mm}
+  @media print{
+    body{background:#fff}
+    .bar,.panel,.stage-top,.no-print{display:none !important}
+    .layout{display:block}
+    .stage{padding:0;display:block}
+    .sheet-wrap{width:auto !important;margin:0 !important;overflow:visible !important}
+    .sheet{transform:none !important;box-shadow:none !important;padding:0 !important;
+           width:auto !important;min-height:0 !important;page-break-after:always}
+    .sheet:last-child{page-break-after:auto}
+    .measure{display:none}
+  }
+  @media (max-width:860px){
+    .layout{display:block}
+    .panel{width:auto;flex:none;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+  }
+</style>
+<body>
+
+<div class="bar no-print">
+  <a class="btn" href="../index.html">← 看板</a>
+  <h1>田字格字帖生成器</h1>
+  <span class="sub">粘贴生字 → 自动排版 → 打印 / 存 PDF</span>
+  <span class="spacer"></span>
+  <span id="status"></span>
+  <button class="btn" id="copy">复制分享链接</button>
+  <button class="btn primary" id="print">打印 / 存 PDF</button>
+</div>
+
+<div class="layout">
+  <aside class="panel no-print">
+    <div class="grp">
+      <h2>生字表</h2>
+      <textarea id="chars" spellcheck="false"></textarea>
+      <div class="hint">直接粘贴课本生字（汉字以外的字符会自动忽略，重复的只留一个）。</div>
+    </div>
+
+    <div class="grp">
+      <h2>版式</h2>
+      <div class="row2"><label>每页字数</label><input type="range" id="perPage" min="1" max="6" step="1"><span class="val" id="perPageV"></span></div>
+      <div class="row2"><label>每行几格</label><input type="range" id="perRow" min="4" max="10" step="1"><span class="val" id="perRowV"></span></div>
+      <div class="row2"><label>格子大小</label><input type="range" id="cell" min="18" max="32" step="1"><span class="val" id="cellV"></span></div>
+      <div class="hint">页数不够/太多，先调「每页字数」。</div>
+    </div>
+
+    <div class="grp">
+      <h2>练什么</h2>
+      <div class="row2"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
+      <div class="row2"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
+      <div class="checks">
+        <label><input type="checkbox" id="strokes">笔顺条</label>
+        <label><input type="checkbox" id="tips">占格要点</label>
+        <label><input type="checkbox" id="pinyin">拼音</label>
+        <label><input type="checkbox" id="words">组词</label>
+        <label><input type="checkbox" id="title">页眉标题</label>
+      </div>
+      <div class="hint">笔顺、拼音、占格对任意汉字都自动生成；<b>占格要点</b>没有人工校对的字会标注「自动生成」。</div>
+    </div>
+
+    <div class="grp">
+      <h2>打印提示</h2>
+      <div class="hint">A4 纵向。描红是淡红色，<b>彩色打印最好</b>；黑白会变浅灰，同样能用。</div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="stage-top">
+      <span id="count"></span>
+      <span>预览即为打印效果 · 打印时请选「A4 / 默认边距」</span>
+    </div>
+    <div id="preview" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+  </main>
+</div>
+
+<script src="../data/pinyin.js"></script>
+<script src="../data/lesson.js"></script>
+<script src="../data/hanzi.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

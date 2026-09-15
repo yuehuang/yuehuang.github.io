@@ -1,0 +1,19 @@
+本项目的第三方数据来源与授权
+================================
+
+1) 汉字笔画轮廓与中心线数据
+   来源：Make Me a Hanzi (https://github.com/skishore/makemeahanzi)
+         经 hanzi-writer-data (https://github.com/chanind/hanzi-writer-data) 打包
+   授权：Arphic Public License（见 ARPHICPL.TXT）
+   - 本项目按原样使用上述数据（未修改字形），并原样保留 ARPHICPL.TXT。
+   - 站点中的生成脚本、网页代码为独立作品，采用 MIT 授权（见 LICENSE），
+     Arphic Public License 第 2 条明确“mere aggregation 不传染”。
+
+2) 拼音数据
+   来源：pinyin-data (https://github.com/mozillazg/pinyin-data) v0.15.0
+   授权：MIT
+
+3) 本课生字的人工校对内容（拼音/笔顺名称/占格要点/组词，data/lesson.js）
+   由本仓库作者整理，随本项目授权发布。
+
+再次分发时，请保留本文件与 ARPHICPL.TXT。

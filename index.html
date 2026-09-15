@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小朋友工具箱</title>
+<link rel="stylesheet" href="assets/style.css">
+<body>
+
+<header class="site"><div class="wrap">
+  <h1>小朋友工具箱</h1>
+  <p>给家长和小朋友的免费小工具 · 纯网页、免登录、不收集任何数据</p>
+</div></header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="搜工具，例如：字帖、拼音、专注力">
+    <button class="chip on" data-tag="全部">全部</button>
+    <button class="chip" data-tag="语文">语文</button>
+    <button class="chip" data-tag="数学">数学</button>
+    <button class="chip" data-tag="专注力">专注力</button>
+    <button class="chip" data-tag="表">表 / 卡片</button>
+  </div>
+
+  <p class="sec-title" id="secTitle">可用工具</p>
+  <div class="grid" id="live"></div>
+
+  <p class="sec-title">规划中</p>
+  <div class="grid" id="plan"></div>
+</div>
+
+<footer class="site"><div class="wrap">
+  <p>汉字笔画数据来自开源项目 <b>Make Me a Hanzi</b> / <b>hanzi-writer-data</b>（Arphic Public License）；拼音数据来自 <b>pinyin-data</b>（MIT）。</p>
+  <p>所有工具都在你的浏览器里运行：不上传、不注册、不保存任何内容。家长可以把生成的练习页打印或存成 PDF 发给别人。</p>
+  <p id="repoLine"></p>
+</div></footer>
+
+<script>
+/* ===== 站点配置：改这里就换名字 ===== */
+const SITE = {
+  name: '小朋友工具箱',
+  repo: ''          // 填上你的仓库地址就会在页脚显示，例如 'https://github.com/xxx/xxx.github.io'
+};
+
+/* ===== 工具清单：新增一个工具 = 加一条 + 建一个同名目录 ===== */
+const TOOLS = [
+  { id:'tianzige', name:'田字格字帖生成器', emoji:'✍️', status:'live', path:'tianzige/',
+    grade:'一年级', tags:['语文','写字'],
+    desc:'粘贴生字，一键生成带笔顺、描红、占格提示的 A4 练习页。可调格子大小、每页字数、是否出笔顺。' },
+
+  { id:'shuerte', name:'舒尔特方格', emoji:'⏱️', status:'planned', grade:'5 岁以上', tags:['专注力'],
+    desc:'5×5 数字找 1→25，每天计时记录，练视觉专注力。可打印。' },
+  { id:'daka', name:'专注力打卡表', emoji:'📅', status:'planned', grade:'一年级', tags:['专注力'],
+    desc:'坐姿/站姿 4 周阶梯打卡，贴冰箱打钩 + 星星奖励。' },
+  { id:'pinyin', name:'拼音卡片', emoji:'🔤', status:'planned', grade:'学前~一年级', tags:['语文','表 / 卡片'],
+    desc:'声母、韵母、整体认读音节卡，可打印成卡片做游戏。' },
+  { id:'shizi', name:'识字卡 / 听写卡', emoji:'🃏', status:'planned', grade:'一年级', tags:['语文','表 / 卡片'],
+    desc:'按课文批量出识字卡；家长报词、孩子写，一页搞定。' },
+  { id:'bishun', name:'笔顺描红（互动）', emoji:'👆', status:'planned', grade:'一年级', tags:['语文','写字'],
+    desc:'在屏幕上跟着描，笔顺和位置写错会即时提示（基于 hanzi-writer）。' },
+  { id:'kousuan', name:'口算练习', emoji:'➕', status:'planned', grade:'一年级', tags:['数学'],
+    desc:'20 以内加减法，可设置题量、难度、是否打印。' },
+  { id:'kebiao', name:'课程表 / 作息表', emoji:'🗓️', status:'planned', grade:'通用', tags:['表 / 卡片'],
+    desc:'自己填课程表、作息表，打印贴墙。' }
+];
+
+const $ = s => document.querySelector(s);
+let curTag = '全部';
+
+function match(t){
+  const kw = $('#q').value.trim().toLowerCase();
+  const okTag = curTag === '全部' || (t.tags||[]).includes(curTag);
+  const okKw = !kw || (t.name + t.desc + (t.tags||[]).join('')).toLowerCase().includes(kw);
+  return okTag && okKw;
+}
+function card(t){
+  const body = `<div class="top"><span class="emoji">${t.emoji}</span><h3>${t.name}</h3>
+      <span class="badge ${t.status==='live'?'live':'plan'}">${t.status==='live'?'可用':'规划中'}</span></div>
+    <p>${t.desc}</p>
+    <div class="tags">${(t.tags||[]).map(x=>`<span class="tag">${x}</span>`).join('')}
+      <span class="tag">${t.grade}</span></div>`;
+  return t.status === 'live'
+    ? `<a class="card" href="${t.path}">${body}</a>`
+    : `<div class="card planned">${body}</div>`;
+}
+function render(){
+  const live = TOOLS.filter(t=>t.status==='live' && match(t));
+  const plan = TOOLS.filter(t=>t.status!=='live' && match(t));
+  $('#live').innerHTML = live.length ? live.map(card).join('') : '<p style="color:#6b7580">没有匹配的工具</p>';
+  $('#plan').innerHTML = plan.map(card).join('');
+  $('#live').previousElementSibling.style.display = live.length ? '' : 'none';
+}
+$('#q').addEventListener('input', render);
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); curTag = c.dataset.tag; if (SITE.repo) document.getElementById('repoLine').innerHTML =
+  `<a href="${SITE.repo}">开源仓库</a> · 想要新工具可以提 issue`;
+render();
+}));
+if (SITE.name) { document.title = SITE.name; document.querySelector('h1').textContent = SITE.name; }
+render();
+</script>
+</body>
+</html>
