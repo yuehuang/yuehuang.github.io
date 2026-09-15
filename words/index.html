@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>英语单词卡 · 背 + 默写</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  :root{ --fit:1; }
+  body{background:#eef0f4}
+  .bar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);
+       display:flex;align-items:center;gap:12px;padding:10px 16px;flex-wrap:wrap}
+  .bar h1{font-size:16.5px;margin:0}
+  .bar .sub{color:var(--muted);font-size:12.5px}
+  .bar .spacer{flex:1}
+  .btn{font:inherit;font-size:14px;min-height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .btn:hover{border-color:#cfd6de}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .layout{display:flex;align-items:flex-start}
+  .panel{width:322px;flex:0 0 322px;background:#fff;border-right:1px solid var(--line);padding:14px 16px 40px;
+         position:sticky;top:59px;max-height:calc(100vh - 59px);overflow:auto}
+  .panel h2{font-size:12.5px;color:var(--muted);letter-spacing:1px;margin:0 0 8px}
+  .panel .grp{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .panel .grp:last-child{border:0}
+  textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit;font-size:14px;line-height:1.7;resize:vertical;outline:none}
+  textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .ctl{display:grid;grid-template-columns:62px 1fr 48px;align-items:center;gap:9px;margin:5px 0}
+  .ctl>label{font-size:13px;color:#39424c}
+  .ctl input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+  .ctl .val{font-size:12px;color:var(--muted);text-align:right}
+  .ctlx{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6b7580;margin:-1px 0 8px 71px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+  .checks label{display:flex;align-items:center;gap:6px;font-size:13px;color:#39424c;cursor:pointer}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;font:inherit;font-size:13px;padding:7px 12px;cursor:pointer;color:#39424c}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:#fff;font-weight:600}
+  .rowbtn{display:flex;gap:8px;margin-top:7px}
+  .rowbtn .btn{flex:1;font-size:13px;min-height:34px;padding:0 8px}
+  .stage{flex:1 1 auto;min-width:0;padding:18px 12px 60px;display:flex;flex-direction:column;align-items:center}
+  .stage-top{width:100%;max-width:210mm;display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+  .sheet-wrap{width:calc(210mm * var(--fit));margin:0 auto 16px;overflow:hidden}
+  .sheet{width:210mm;min-height:297mm;background:#fff;padding:11mm 12mm;transform:scale(var(--fit));transform-origin:top left;
+         box-shadow:0 1px 3px rgba(16,24,40,.1),0 10px 30px -14px rgba(16,24,40,.25)}
+  .sheettitle h1{font-size:15pt;margin:0 0 2mm}
+  .sheettitle .sub{font-size:9pt;color:#666;margin-bottom:4mm}
+  .sheetfoot{font-size:8pt;color:#999;border-top:1px solid #eee;margin-top:4mm;padding-top:2mm;text-align:center}
+  /* 单词卡 */
+  .wgrid{display:grid;gap:3mm}
+  .wcard{border:1px dashed #cfcfcf;border-radius:3mm;padding:3mm;height:var(--cardh,62mm);
+         display:flex;flex-direction:column;gap:1mm;overflow:hidden;break-inside:avoid}
+  .wtop{display:flex;align-items:baseline;justify-content:space-between}
+  .wword{font-family:"Times New Roman",Georgia,serif;font-size:16pt;letter-spacing:.3px}
+  .wsub{display:flex;gap:3mm;align-items:baseline;font-family:"Times New Roman",serif;font-size:10pt}
+  .wipa{color:#2b6cb0}
+  .wsyl{color:#c77700}
+  .wzh{font-size:12pt;margin-top:1mm}
+  .wen{font-size:10pt;color:#333;margin-top:auto}
+  .wcn{font-size:9pt;color:#777}
+  .wtip{font-size:7.5pt;color:#c77700}
+  /* 默写纸 */
+  .ditem{padding:2.5mm 0 3.5mm;border-bottom:1px dashed #ddd;break-inside:avoid}
+  .dhead{display:flex;align-items:baseline;gap:4mm}
+  .dno{width:6mm;height:6mm;flex:0 0 auto;border-radius:50%;background:#eef2f7;color:#39424c;font-size:9pt;
+       display:inline-flex;align-items:center;justify-content:center}
+  .dzh{font-size:13pt;font-weight:600}
+  .dipa{font-family:"Times New Roman",serif;color:#2b6cb0;font-size:10pt}
+  .dsen{font-size:9.5pt;color:#444;margin:1.5mm 0 0 10mm}
+  .dsen .dcn{color:#888;font-size:8.5pt}
+  .blank{display:inline-block;min-width:24mm;border-bottom:1px solid #999;text-decoration:none}
+  .dline{border-bottom:1px solid #bbb;height:9mm;margin:2mm 0 0 10mm}
+  /* 听写表 */
+  .wtable{width:100%;border-collapse:collapse;font-size:10pt}
+  .wtable th,.wtable td{border:1px solid #ccc;padding:2mm 2.5mm}
+  .wtable th{background:#f7f9fc;font-weight:600;font-size:9pt}
+  .wtable td.c{width:10mm;text-align:center;color:#666}
+  .wtable td.zh{width:34mm}
+  .wtable td.en{font-family:"Times New Roman",serif;font-weight:700;font-size:11pt}
+  .wtable td.ipa{width:34mm;font-family:"Times New Roman",serif;color:#2b6cb0}
+  .wtable td.sp{width:44mm}
+  .spk{border:0;background:transparent;cursor:pointer;font-size:11pt;padding:0 2px}
+  .empty{color:var(--muted);padding:40px 0}
+  body[data-mode="dictate"] .only-card,body[data-mode="list"] .only-card{display:none}
+  body[data-mode="card"] .only-dictate,body[data-mode="list"] .only-dictate{display:none}
+  @page{size:A4 portrait;margin:11mm 12mm}
+  @media print{
+    body{background:#fff}
+    .bar,.panel,.stage-top,.no-print{display:none !important}
+    .layout{display:block}.stage{padding:0;display:block}
+    .sheet-wrap{width:auto !important;margin:0 !important;overflow:visible !important}
+    .sheet{transform:none !important;box-shadow:none !important;padding:0 !important;width:auto !important;min-height:0 !important;page-break-after:always}
+    .sheet:last-child{page-break-after:auto}
+  }
+  @media (max-width:880px){ .layout{display:block} .panel{width:auto;flex:none;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)} }
+</style>
+<body>
+
+<div class="bar no-print">
+  <a class="btn" href="../index.html">← 看板</a>
+  <h1>英语单词卡</h1>
+  <span class="sub">粘贴词表 → 卡片 / 默写纸 / 听写表</span>
+  <span class="spacer"></span>
+  <span id="status"></span>
+  <button class="btn" id="copy">复制分享链接</button>
+  <button class="btn primary" id="print">导出 PDF</button>
+</div>
+
+<div class="layout">
+  <aside class="panel no-print">
+    <div class="grp">
+      <h2>词表</h2>
+      <textarea id="words" spellcheck="false" placeholder="一行一个词，例如：&#10;family&#10;mother&#10;daughter"></textarea>
+      <div class="rowbtn">
+        <button class="btn" id="demo">填入示例词表</button>
+        <button class="btn" id="shuffleNow">打乱顺序</button>
+      </div>
+      <div class="hint">直接粘贴课本词表即可（逗号/空格/换行都能识别，自动去重）。词表里没有的词会查离线词典；离线也没有才联网补音标。</div>
+    </div>
+
+    <div class="grp">
+      <h2>输出</h2>
+      <div class="seg">
+        <button class="seg" data-mode="card">单词卡</button>
+        <button class="seg" data-mode="dictate">默写纸</button>
+        <button class="seg" data-mode="list">听写表</button>
+      </div>
+      <div class="hint">卡片＝裁剪背诵用；默写纸＝看着中文/例句写单词；听写表＝家长报词用（打印时给孩子那列留空）。</div>
+    </div>
+
+    <div class="grp only-card">
+      <h2>卡片版式</h2>
+      <div class="ctl"><label>每页列数</label><input type="range" id="cols" min="2" max="4" step="1"><span class="val" id="colsV"></span></div>
+      <div class="ctl"><label>每页行数</label><input type="range" id="rows" min="2" max="6" step="1"><span class="val" id="rowsV"></span></div>
+      <div class="hint">3 列 × 4 行 = 每页 12 张卡；想给一年级写大字就用 2 × 3。</div>
+    </div>
+
+    <div class="grp only-card">
+      <h2>卡片上显示什么</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="ipa">音标</label>
+        <label><input type="checkbox" id="syl">拆音节</label>
+        <label><input type="checkbox" id="zh">中文</label>
+        <label><input type="checkbox" id="en">例句</label>
+        <label><input type="checkbox" id="cn">例句中文</label>
+      </div>
+    </div>
+
+    <div class="grp only-dictate">
+      <h2>默写提示</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="hintZh">给中文</label>
+        <label><input type="checkbox" id="hintIpa">给音标</label>
+        <label><input type="checkbox" id="hintBlank">例句挖空</label>
+      </div>
+      <div class="hint">例句里出现的那个词会变成空格，孩子写完整句。</div>
+    </div>
+
+    <div class="grp">
+      <h2>页眉 / 页脚</h2>
+      <input type="text" id="headText" placeholder="页眉标题" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px;margin-bottom:6px">
+      <input type="text" id="footText" placeholder="页脚文字（留空则不显示）" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px">
+    </div>
+
+    <div class="grp">
+      <h2>说明</h2>
+      <div class="hint">🔊 按钮只在屏幕上出现（点一下朗读），打印不会带上。<br>
+      想真正练"背"，建议打印卡片：先让孩子看卡片读三遍，再遮住英文用中文回忆，最后用默写纸写一遍。</div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="stage-top"><span id="count"></span><span>预览即打印效果</span></div>
+    <div id="preview" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+  </main>
+</div>
+
+<script src="../data/en-zh.js"></script>
+<script src="../data/words-unit1.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
