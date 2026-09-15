@@ -112,26 +112,33 @@
     });
     return g;
   }
-  /* 笔顺标号：在每笔起笔点画①②③（不受翻转影响，单独一层） */
+  /* 笔画标号：空心圆圈 + 浅色数字 —— 不填充，不遮住笔画本体 */
   function numberLayer(medians) {
     var g = svgTag('g');
     (medians || []).forEach(function (med, i) {
       if (!med || !med.length) return;
       var x = med[0][0], y = 900 - med[0][1];
       var c = svgTag('circle');
-      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 104);
-      c.setAttribute('fill', '#d0342c');
+      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 98);
+      c.setAttribute('fill', 'none');
+      c.setAttribute('stroke', '#f0bdbd');
+      c.setAttribute('stroke-width', '26');
       g.appendChild(c);
       var t = svgTag('text');
       t.setAttribute('x', x); t.setAttribute('y', y + 4);
-      t.setAttribute('fill', '#fff'); t.setAttribute('font-size', '136');
+      t.setAttribute('fill', '#d98b8b');
+      t.setAttribute('stroke', '#ffffff');        // 白描边让数字压在笔画上也看得清（不是填充，不遮字）
+      t.setAttribute('stroke-width', '22');
+      t.setAttribute('paint-order', 'stroke');
+      t.setAttribute('font-size', '132');
       t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
-      t.setAttribute('font-family', '-apple-system,sans-serif'); t.setAttribute('font-weight', '700');
+      t.setAttribute('font-family', '-apple-system,sans-serif'); t.setAttribute('font-weight', '600');
       t.textContent = i + 1;
       g.appendChild(t);
     });
     return g;
   }
+
   function svgCell(data, mode) {
     var s = svgTag('svg');
     s.setAttribute('viewBox', '0 0 1024 1024');
