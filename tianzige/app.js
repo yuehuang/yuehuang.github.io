@@ -12,13 +12,14 @@
     mo:   { autoPage: 1, label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     zi:   { autoPage: 1, label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     bi:   { autoPage: 1, label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
+    one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 0, rows: 1, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     mo2:  { autoPage: 1, label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
   };
 
   var cfg = {
     chars: DEFAULT_CHARS, preset: 'zi', grid: 'tian', paper: 'A4', orient: 'portrait',
     perPage: 3, perRow: 7, cell: 24, gap: 1.6, trace: 0, rows: 2,
-    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1
+    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -32,7 +33,7 @@
   var svgTag = function (t) { return document.createElementNS(SVGNS, t); };
 
   /* ---------------- 配置 <-> URL ---------------- */
-  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage'];
+  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage', 'autoCell', 'autoTips'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     if (q.has('chars')) cfg.chars = q.get('chars');
@@ -144,12 +145,34 @@
     }
     return s;
   }
+  /* 自动占格提示：只挑重点（最多 3 条），不逐笔罗列 */
   function autoTip(data) {
     if (!data.m || !data.m.length) return '';
-    return data.m.map(function (med, i) {
-      var a = med[0], b = med[med.length - 1];
-      return '第' + (i + 1) + '笔：从' + posName(a[0], 900 - a[1]) + '起笔，到' + posName(b[0], 900 - b[1]) + '收笔';
-    }).join('；');
+    var xs = [], ys = [];
+    data.m.forEach(function (med) { med.forEach(function (p) { xs.push(p[0]); ys.push(900 - p[1]); }); });
+    if (!xs.length) return '';
+    var w = Math.max.apply(null, xs) - Math.min.apply(null, xs);
+    var h = Math.max.apply(null, ys) - Math.min.apply(null, ys);
+    var out = [];
+    if (h > w * 1.3) out.push('字形偏窄长');
+    else if (w > h * 1.3) out.push('字形偏扁宽');
+
+    var onV = 0, onH = 0, longest = 0, best = -1;
+    data.m.forEach(function (med, i) {
+      var x0 = med[0][0], y0 = 900 - med[0][1];
+      var x1 = med[med.length - 1][0], y1 = 900 - med[med.length - 1][1];
+      var len = 0;
+      for (var k = 1; k < med.length; k++) {
+        len += Math.hypot(med[k][0] - med[k - 1][0], med[k][1] - med[k - 1][1]);
+      }
+      if (!onV && Math.abs(x0 - 512) < 70 && Math.abs(y1 - y0) > 320) onV = i + 1;
+      if (!onH && Math.abs(y0 - 512) < 70 && Math.abs(x1 - x0) > 320) onH = i + 1;
+      if (len > best) { best = len; longest = i + 1; }
+    });
+    if (onV) out.push('第 ' + onV + ' 笔压在竖中线上');
+    if (onH) out.push('第 ' + onH + ' 笔落在横中线上');
+    if (longest && longest !== onV && longest !== onH && out.length < 3) out.push('第 ' + longest + ' 笔最长，写舒展');
+    return out.slice(0, 3).join('；');
   }
 
   /* ---------------- 单字块 ---------------- */
@@ -208,12 +231,13 @@
     }
 
     if (cfg.tips) {
-      var tip = info && info.tip ? info.tip : autoTip(data);
+      var curated = info && info.tip;
+      var tip = curated || (cfg.autoTips ? autoTip(data) : '');
       if (tip) {
         var f = el('div', 'bfoot');
         f.appendChild(el('span', 'tipk', '占格：'));
         f.appendChild(document.createTextNode(tip));
-        if (!(info && info.tip)) f.appendChild(el('span', 'badge', '自动生成·仅供参考'));
+        if (!curated) f.appendChild(el('span', 'badge', '自动生成·仅供参考'));
         b.appendChild(f);
       }
     }
@@ -221,12 +245,18 @@
   }
 
   /* ---------------- 分页 + 渲染 ---------------- */
+  function cellMM(p) {
+    p = p || paperInfo();
+    if (!cfg.autoCell) return cfg.cell;
+    var n = Math.max(1, cfg.perRow);
+    return Math.max(8, (p.cw - (n - 1) * cfg.gap) / n);
+  }
   function applyVars() {
     var p = paperInfo();
     var root = document.documentElement.style;
-    root.setProperty('--cell', cfg.cell + 'mm');
+    root.setProperty('--cell', cellMM(p).toFixed(2) + 'mm');
     root.setProperty('--gap', cfg.gap + 'mm');
-    root.setProperty('--strip', Math.max(7, Math.min(12, Math.round(cfg.cell * 0.4))) + 'mm');
+    root.setProperty('--strip', Math.max(7, Math.min(12, Math.round(cellMM(p) * 0.4))) + 'mm');
     root.setProperty('--pw', p.w + 'mm');
     root.setProperty('--ph', p.h + 'mm');
     var st = $('#pagestyle') || (function () { var e = document.createElement('style'); e.id = 'pagestyle'; document.head.appendChild(e); return e; })();
@@ -243,8 +273,13 @@
     $$('.preset').forEach(function (x) { x.classList.toggle('on', x.dataset.preset === cfg.preset); });
     $$('input[type=checkbox]').forEach(function (n) { if (n.id in cfg) n.checked = !!cfg[n.id]; });
     var p = paperInfo();
-    var maxRow = Math.max(3, Math.floor((p.cw + cfg.gap) / (cfg.cell + cfg.gap)));
-    $('#hintRow').textContent = maxRow < 10 ? (cfg.paper + (cfg.orient === 'landscape' ? ' 横向' : ' 纵向') + ' 每行最多 ' + maxRow + ' 格') : '';
+    var maxRow = cfg.autoCell ? 16 : Math.max(1, Math.floor((p.cw + cfg.gap) / (cfg.cell + cfg.gap)));
+    $('#hintRow').textContent = cfg.autoCell
+      ? '格子自动铺满：每格 ' + cellMM(p).toFixed(1) + 'mm（' + (cfg.perRow) + ' 格/行）'
+      : (maxRow < 16 ? (cfg.paper + (cfg.orient === 'landscape' ? ' 横向' : ' 纵向') + ' 每行最多 ' + maxRow + ' 格') : '');
+    var cn = $('#cell');
+    if (cn) { cn.disabled = !!cfg.autoCell; cn.style.opacity = cfg.autoCell ? .45 : 1; }
+    var cv = $('#cellV'); if (cv) cv.textContent = cfg.autoCell ? ('自动 ' + cellMM(p).toFixed(1) + 'mm') : (cfg.cell + 'mm');
   }
   function paint(blocks) {
     applyVars();
@@ -267,18 +302,18 @@
       var refH = Math.max.apply(null, sample) || 1;              // 用前几个字里最高的，避免低估
       var canFit = Math.max(1, Math.floor((budget - titleH) / refH));
       if (cfg.autoPage) {
-        if (cfg.perPage !== canFit) { cfg.perPage = canFit; autoNote = '（自动铺满）'; writeURL(); }
+        if (cfg.perPage !== canFit) { cfg.perPage = canFit; writeURL(); }
       } else if (cfg.perPage > canFit) {
-        cfg.perPage = canFit; autoNote = '（每页字数已按纸张自动调到 ' + canFit + '）'; writeURL();
+        cfg.perPage = canFit; autoNote = '（已按纸张自动调到 ' + canFit + '）'; writeURL();
       }
     }
     var pages = [], cur = [], used = 0, forced = 0;
     blocks.forEach(function (b, i) {
       var h = heights[i];
       var lim = budget - (pages.length === 0 ? titleH : 0);
-      var overH = cur.length && used + h > lim, overN = cur.length >= cfg.perPage;
+      var overH = cur.length && used + h > lim, overN = !cfg.autoPage && cur.length >= cfg.perPage;
       if (cur.length && (overH || overN)) {
-        if (overH && !overN) forced++;
+        if (overH && !overN && !cfg.autoPage) forced++;
         pages.push({ items: cur, title: pages.length === 0 }); cur = []; used = 0;
       }
       cur.push(b); used += h;
@@ -302,7 +337,12 @@
       wrap.appendChild(sheet);
       preview.appendChild(wrap);
     });
-    $('#count').textContent = '共 ' + total + ' 页 · 每页 ' + cfg.perPage + ' 字' + autoNote
+    var perPageTxt = cfg.perPage + ' 字';
+    if (cfg.autoPage && pages.length) {
+      var a1 = pages[0].items.length, a2 = pages.length > 1 ? pages[1].items.length : a1;
+      perPageTxt = (a1 === a2 ? a1 : a1 + '~' + a2) + ' 字';
+    }
+    $('#count').textContent = '共 ' + total + ' 页 · 每页 ' + perPageTxt + (cfg.autoPage ? '（自动铺满）' : '') + autoNote
       + (forced ? '（有 ' + forced + ' 页高度不够，建议调小格子或减少行数）' : '');
     fit();
   }
@@ -318,7 +358,7 @@
     var p = paperInfo();
     var maxRow = Math.max(3, Math.floor((p.cw + cfg.gap) / (cfg.cell + cfg.gap)));
     if (cfg.perRow > maxRow) cfg.perRow = maxRow;
-    var n = $ ('#perRow'); if (n) { n.max = Math.min(10, maxRow); if (+n.value > maxRow) n.value = maxRow; }
+    var n = $ ('#perRow'); if (n) { n.max = Math.min(16, Math.max(1, maxRow)); if (+n.value > maxRow) n.value = maxRow; }
     if (!chars.length) { $('#preview').innerHTML = '<p class="empty">请输入要练的生字</p>'; $('#count').textContent = ''; return; }
     $('#status').textContent = '正在准备字形…';
     Promise.all(chars.map(loadChar)).then(function (list) {

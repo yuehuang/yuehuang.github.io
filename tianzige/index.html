@@ -31,6 +31,7 @@
           cursor:pointer;transition:.15s;text-align:center}
   .preset:hover{border-color:#cfd6de}
   .preset.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .preset.span2{grid-column:span 2}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
   .seg button{border:0;background:#fff;font:inherit;font-size:13.5px;padding:7px 14px;cursor:pointer;color:#39424c}
   .seg button+button{border-left:1px solid var(--line)}
@@ -118,6 +119,7 @@
         <button class="preset" data-preset="zi">范字 + 空格</button>
         <button class="preset" data-preset="bi">笔顺分解</button>
         <button class="preset" data-preset="mo2">默写听写</button>
+        <button class="preset span2" data-preset="one">每字一行</button>
       </div>
       <div class="hint">「范字 + 空格」最接近课堂生字本：第一格是范字，后面全留白让孩子自己写。下面的开关可以再微调。</div>
     </div>
@@ -135,8 +137,9 @@
 
     <div class="grp">
       <h2>版式</h2>
-      <div class="row2"><label>格子大小</label><input type="range" id="cell" min="15" max="32" step="1"><span class="val" id="cellV"></span></div>
-      <div class="row2"><label>每行几格</label><input type="range" id="perRow" min="4" max="10" step="1"><span class="val" id="perRowV"></span></div>
+      <div class="row2"><label>格子大小</label><input type="range" id="cell" min="10" max="40" step="1"><span class="val" id="cellV"></span></div>
+      <div class="row2"><label style="font-size:12.5px;color:#6b7580">格子自动铺满行宽</label><input type="checkbox" id="autoCell"></div>
+      <div class="row2"><label>每行几格</label><input type="range" id="perRow" min="1" max="16" step="1"><span class="val" id="perRowV"></span></div>
       <div class="row2"><label>格子间距</label><input type="range" id="gap" min="0" max="5" step="0.2"><span class="val" id="gapV"></span></div>
       <div class="hint" id="hintRow"></div>
     </div>
@@ -147,7 +150,7 @@
       <div class="row2"><label style="font-size:12.5px;color:#6b7580">每页字数自动铺满</label><input type="checkbox" id="autoPage"></div>
       <div class="row2"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
       <div class="row2"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
-      <div class="hint">描红设 0 = 只有范字 + 空格，孩子直接在田字格里写（推荐）。</div>
+      <div class="hint">描红设 0 = 只有范字 + 空格，孩子直接在田字格里写（推荐）。<br>练习行数 1 = 每个字只练一行（省纸）；「格子自动铺满行宽」= 按每行几格自动算格子大小，每行 1 格就是超大字。</div>
     </div>
 
     <div class="grp">
@@ -158,10 +161,11 @@
         <label><input type="checkbox" id="strokes">笔顺条</label>
         <label><input type="checkbox" id="numbers">笔画标号</label>
         <label><input type="checkbox" id="tips">占格要点</label>
+        <label><input type="checkbox" id="autoTips">自动占格（其他字）</label>
         <label><input type="checkbox" id="words">组词</label>
         <label><input type="checkbox" id="title">页眉标题</label>
       </div>
-      <div class="hint">笔顺、拼音对任意汉字自动生成；「占格要点」没有人工校对的字会标注「自动生成」。</div>
+      <div class="hint">「占格要点」只有课本精编的字有（人工写的，一句话）；其余字默认不出，勾「自动占格」也只给 2~3 条重点（压中线 / 主笔 / 字势）。</div>
     </div>
 
     <div class="grp">
