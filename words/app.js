@@ -8,7 +8,7 @@
   var el = function (t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
 
   var cfg = {
-    words: '', mode: 'card', cols: 3, rows: 3,
+    words: '', mode: 'card', cols: 2, rows: 3,
     ipa: 1, pos: 1, syl: 1, zh: 1, en: 1, cn: 1,  // 卡片显示项
     hintZh: 1, hintIpa: 1, hintBlank: 1,        // 默写纸提示
     shuffle: 0, headText: '英语单词卡', footText: '',
@@ -198,24 +198,33 @@
 
   /* ---------- 四线三格 + 单词（英文书写参考线）---------- */
   var NS = 'http://www.w3.org/2000/svg';
-  function writingBlock(word, sp) {
+  function writingBlock(word, sp, fsFixed) {
     sp = sp || 10;
-    var W = 100, top = sp * 0.6, H = top + 3 * sp + sp * 0.3;      // 4 条线 / 3 个格
+    var W = 100, top = sp * 0.55, H = top + 3 * sp + sp * 0.3;
     var s = document.createElementNS(NS, 'svg');
     s.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     s.setAttribute('class', 'wlines');
-    [0, 1, 2, 3].forEach(function (i) {
+    /* 4 条线：上、下粗（深一点）；中间两根细，靠下那根（基线）虚线 + 亮蓝 */
+    var st = [
+      { w: 1.2, c: '#8ea4bc', dash: '' },          // ① 顶线：粗
+      { w: 0.6, c: '#cbd6e2', dash: '' },          // ② 细
+      { w: 0.6, c: '#5b9bd5', dash: '3.2 2.4' },   // ③ 基线：细 · 虚线 · 亮蓝
+      { w: 1.2, c: '#8ea4bc', dash: '' }           // ④ 底线：粗
+    ];
+    st.forEach(function (k, i) {
       var y = top + i * sp, l = document.createElementNS(NS, 'line');
-      l.setAttribute('x1', 2); l.setAttribute('x2', W - 2);
+      l.setAttribute('x1', 3); l.setAttribute('x2', W - 3);
       l.setAttribute('y1', y); l.setAttribute('y2', y);
-      l.setAttribute('stroke', i === 2 ? '#98b0c8' : '#c9d6e4');   // 第 3 条是基线，画深一点
-      l.setAttribute('stroke-width', i === 2 ? 0.9 : 0.7);
+      l.setAttribute('stroke', k.c); l.setAttribute('stroke-width', k.w);
+      if (k.dash) l.setAttribute('stroke-dasharray', k.dash);
       s.appendChild(l);
     });
     if (word) {
-      var fs = Math.min(sp * 1.9, (W - 6) / (word.length * 0.52));
+      var fs = fsFixed || Math.min(sp * 1.9, (W - 10) / (word.length * 0.5));
       var t = document.createElementNS(NS, 'text');
-      t.setAttribute('x', 3); t.setAttribute('y', top + 2 * sp);    // 基线落在第 3 条线上
+      t.setAttribute('x', W / 2);                      // 居中
+      t.setAttribute('y', top + 2 * sp);               // 基线压在第 3 条线上
+      t.setAttribute('text-anchor', 'middle');
       t.setAttribute('font-size', fs.toFixed(1));
       t.setAttribute('font-family', '"Times New Roman",Georgia,serif');
       t.setAttribute('fill', '#1c2024');
@@ -226,17 +235,17 @@
   }
 
   /* ---------- 三种输出 ---------- */
-  function cardItem(it) {
+  function cardItem(it, fs) {
     var c = el('div', 'wcard');
     c.appendChild(spkBtn(it.w));                       // 🔊 屏幕用，右上角
-    c.appendChild(writingBlock(it.w));                 // ① 单词 + 四线三格
+    c.appendChild(writingBlock(it.w, 10, fs));         // ① 单词 + 四线三格（全篇统一字号）
     if (cfg.ipa && it.ipa) c.appendChild(el('div', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
     var l3 = el('div', 'wpos');
     if (cfg.pos && it.pos) l3.appendChild(el('span', 'posTag', it.pos));
     if (cfg.zh && it.zh) l3.appendChild(el('span', 'wzh', it.zh));
     if (l3.childNodes.length) c.appendChild(l3);
     if (cfg.syl && it.syl) c.appendChild(el('div', 'wsylBig', it.syl.replace(/·/g, ' · ')));  // ④ 音节
-    if (cfg.en && it.en) c.appendChild(el('div', 'wen', it.en));                               // ⑤ 例句
+    if (cfg.en && it.en) c.appendChild(el('div', 'wen', it.en));  // ⑤ 例句
     if (cfg.cn && it.cn) c.appendChild(el('div', 'wcn', it.cn));
     if (it.src === 'net') c.appendChild(el('div', 'wtip', '音标来自联网'));
     if (it.src === 'none') c.appendChild(el('div', 'wtip', '词典未收录'));
@@ -294,13 +303,16 @@
         sheet.appendChild(t); pages.push(sheet);
       };
       if (cfg.mode === 'card') {
+        /* 统一字号：按最长单词算，全篇一致，不会一张大一张小 */
+        var maxLen = Math.max.apply(null, items.map(function (x) { return x.w.length; }));
+        var fsUni = Math.min(10 * 1.95, (100 - 10) / (maxLen * 0.5));
         var perPage = cfg.cols * cfg.rows;
         for (var i = 0; i < items.length; i++) {
           if (i % perPage === 0) addSheet();
           if (i % perPage === 0) { }
           var grid = sheet.querySelector('.wgrid');
           if (!grid) { grid = el('div', 'wgrid'); grid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)'; grid.style.setProperty('--cardh', ((273 - 26 - (cfg.rows - 1) * 3) / cfg.rows).toFixed(1) + 'mm'); sheet.appendChild(grid); }
-          grid.appendChild(cardItem(items[i]));
+          grid.appendChild(cardItem(items[i], fsUni));
         }
       } else if (cfg.mode === 'dictate') {
         var perD = 6;
