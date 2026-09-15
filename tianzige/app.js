@@ -12,13 +12,13 @@
     mo:   { autoPage: 1, label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     zi:   { autoPage: 1, label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     bi:   { autoPage: 1, label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
-    one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 0, rows: 1, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 2, rows: 1, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
     mo2:  { autoPage: 1, label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
   };
 
   var cfg = {
-    chars: DEFAULT_CHARS, preset: 'zi', grid: 'tian', paper: 'A4', orient: 'portrait',
-    perPage: 3, perRow: 7, cell: 24, gap: 1.6, trace: 0, rows: 2,
+    chars: DEFAULT_CHARS, preset: 'one', grid: 'tian', paper: 'A4', orient: 'portrait',
+    perPage: 6, perRow: 10, cell: 15, gap: 1.6, trace: 2, rows: 1,
     model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0, idioms: 1
   };
 
