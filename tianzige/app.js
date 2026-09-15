@@ -10,17 +10,17 @@
 
   var PRESETS = {
     /* 每字一行：范字 + 2 格描红 + 空格，一个字只练一行（省纸，当前默认） */
-    one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 2, rows: 1, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    one:  { autoPage: 1, label: '每字一行', perPage: 6, trace: 2, rows: 1, numbers: 0, pinyin: 1, strokes: 1, words: 1 },
     /* 描红练习：范字 + 3 格描红 × 2 行（刚起步、手还生的时候） */
-    mo:   { autoPage: 1, label: '描红练习', perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    mo:   { autoPage: 1, label: '描红练习', perPage: 3, trace: 3, rows: 2, numbers: 0, pinyin: 1, strokes: 1, words: 1 },
     /* 笔顺分解：范字上标 ①②③，右侧笔顺条逐笔拆开 */
-    bi:   { autoPage: 1, label: '笔顺分解', perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 }
+    bi:   { autoPage: 1, label: '笔顺分解', perPage: 3, trace: 0, rows: 2, numbers: 1, pinyin: 1, strokes: 1, words: 0 }
   };
 
   var cfg = {
     chars: DEFAULT_CHARS, preset: 'one', grid: 'tian', paper: 'A4', orient: 'portrait',
     perPage: 6, perRow: 10, cell: 15, gap: 1.6, trace: 2, rows: 1,
-    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0, idioms: 1,
+    numbers: 0, strokes: 1, pinyin: 1, words: 1, idioms: 1, autoPage: 1, autoCell: 0, strokeTrace: 0,
     headText: '写字练习', footText: '描红 → 临写 → 自查：这一笔是不是压在横中线上？'
   };
 
@@ -35,7 +35,7 @@
   var svgTag = function (t) { return document.createElementNS(SVGNS, t); };
 
   /* ---------------- 配置 <-> URL ---------------- */
-  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage', 'autoCell', 'autoTips', 'idioms'];
+  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['numbers', 'strokes', 'pinyin', 'words', 'idioms', 'autoPage', 'autoCell', 'strokeTrace'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     if (q.has('chars')) cfg.chars = q.get('chars');
@@ -46,7 +46,11 @@
     if (q.has('gap')) cfg.gap = parseFloat(q.get('gap')) || cfg.gap;
     if (q.has('head')) cfg.headText = q.get('head');
     if (q.has('foot')) cfg.footText = q.get('foot');
-    NUMK.forEach(function (k) { if (q.has(k)) cfg[k] = Math.max(0, parseInt(q.get(k), 10) || cfg[k]); });
+    NUMK.forEach(function (k) {                      /* 注意：0 是合法值（描红 0 格），不能用 || */
+      if (!q.has(k)) return;
+      var v = parseInt(q.get(k), 10);
+      if (!isNaN(v)) cfg[k] = Math.max(0, v);
+    });
     BOOLK.forEach(function (k) { if (q.has(k)) cfg[k] = q.get(k) === '0' ? 0 : 1; });
   }
   function writeURL() {
@@ -117,6 +121,19 @@
     });
     return g;
   }
+  /* 笔顺描红：第 step 格画前 step 笔，最新一笔深、之前的浅 */
+  function glyphStep(strokes, step) {
+    var g = svgTag('g');
+    g.setAttribute('transform', 'translate(0,900) scale(1,-1)');
+    strokes.slice(0, step).forEach(function (d, i) {
+      var p = svgTag('path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', i === step - 1 ? '#f2adad' : '#f8dcdc');
+      g.appendChild(p);
+    });
+    return g;
+  }
+
   /* 笔画标号：空心圆圈 + 浅色数字 —— 不填充，不遮住笔画本体 */
   function numberLayer(medians) {
     var g = svgTag('g');
@@ -144,7 +161,7 @@
     return g;
   }
 
-  function svgCell(data, mode) {
+  function svgCell(data, mode, step) {
     var s = svgTag('svg');
     s.setAttribute('viewBox', '0 0 1024 1024');
     s.setAttribute('class', 'cell');
@@ -154,39 +171,10 @@
         s.appendChild(glyph(data.s, '#1c1c1c'));
         if (cfg.numbers) s.appendChild(numberLayer(data.m));
       } else if (mode === 'trace') s.appendChild(glyph(data.s, '#f2adad'));
+      else if (mode === 'step') s.appendChild(glyphStep(data.s, step));
     }
     return s;
   }
-  /* 自动占格提示：只挑重点（最多 3 条），不逐笔罗列 */
-  function autoTip(data) {
-    if (!data.m || !data.m.length) return '';
-    var xs = [], ys = [];
-    data.m.forEach(function (med) { med.forEach(function (p) { xs.push(p[0]); ys.push(900 - p[1]); }); });
-    if (!xs.length) return '';
-    var w = Math.max.apply(null, xs) - Math.min.apply(null, xs);
-    var h = Math.max.apply(null, ys) - Math.min.apply(null, ys);
-    var out = [];
-    if (h > w * 1.3) out.push('字形偏窄长');
-    else if (w > h * 1.3) out.push('字形偏扁宽');
-
-    var onV = 0, onH = 0, longest = 0, best = -1;
-    data.m.forEach(function (med, i) {
-      var x0 = med[0][0], y0 = 900 - med[0][1];
-      var x1 = med[med.length - 1][0], y1 = 900 - med[med.length - 1][1];
-      var len = 0;
-      for (var k = 1; k < med.length; k++) {
-        len += Math.hypot(med[k][0] - med[k - 1][0], med[k][1] - med[k - 1][1]);
-      }
-      if (!onV && Math.abs(x0 - 512) < 70 && Math.abs(y1 - y0) > 320) onV = i + 1;
-      if (!onH && Math.abs(y0 - 512) < 70 && Math.abs(x1 - x0) > 320) onH = i + 1;
-      if (len > best) { best = len; longest = i + 1; }
-    });
-    if (onV) out.push('第 ' + onV + ' 笔压在竖中线上');
-    if (onH) out.push('第 ' + onH + ' 笔落在横中线上');
-    if (longest && longest !== onV && longest !== onH && out.length < 3) out.push('第 ' + longest + ' 笔最长，写舒展');
-    return out.slice(0, 3).join('；');
-  }
-
   /* ---------------- 单字块 ---------------- */
   function buildBlock(ch, data) {
     var info = (window.LESSON && window.LESSON[ch]) || null;
@@ -234,29 +222,23 @@
     }
     b.appendChild(head);
 
-    var traceN = Math.min(cfg.trace, cfg.perRow - 1);
+    var nStrokes = data.s ? data.s.length : 0;
+    var stepMode = cfg.strokeTrace && nStrokes > 1;
+    var traceN = stepMode ? Math.min(nStrokes, cfg.perRow) : Math.min(cfg.trace, cfg.perRow - 1);
     for (var r = 0; r < cfg.rows; r++) {
       var row = el('div', 'row');
       for (var c = 0; c < cfg.perRow; c++) {
-        var mode = 'blank';
-        if (r === 0 && cfg.model) mode = c === 0 ? 'model' : (c <= traceN ? 'trace' : 'blank');
-        else mode = c < traceN ? 'trace' : 'blank';
-        row.appendChild(svgCell(data, mode));
+        var mode = 'blank', step = 0;
+        if (r === 0) {
+          if (stepMode) { if (c < traceN) { mode = 'step'; step = c + 1; } }
+          else if (c === 0) mode = 'model';
+          else if (c <= traceN) mode = 'trace';
+        }
+        row.appendChild(svgCell(data, mode, step));   /* 第二行起一律空格，不再出现描红 */
       }
       b.appendChild(row);
     }
 
-    if (cfg.tips) {
-      var curated = info && info.tip;
-      var tip = curated || (cfg.autoTips ? autoTip(data) : '');
-      if (tip) {
-        var f = el('div', 'bfoot');
-        f.appendChild(el('span', 'tipk', '占格：'));
-        f.appendChild(document.createTextNode(tip));
-        if (!curated) f.appendChild(el('span', 'badge', '自动生成·仅供参考'));
-        b.appendChild(f);
-      }
-    }
     return b;
   }
 
@@ -284,7 +266,9 @@
       var n = $('#' + p[0]);
       if (n && +n.value !== +cfg[p[0]]) n.value = cfg[p[0]];    // 自动调整后同步滑块位置
       if (n && p[0] === 'perPage') { n.disabled = !!cfg.autoPage; n.style.opacity = cfg.autoPage ? .45 : 1; }
+      if (n && p[0] === 'trace') { n.disabled = !!cfg.strokeTrace; n.style.opacity = cfg.strokeTrace ? .45 : 1; }
     });
+    var tv = $('#traceV'); if (tv) tv.textContent = cfg.strokeTrace ? '按笔顺' : cfg.trace;   /* 放在循环之后，别被覆盖 */
     $$('.seg[data-grid]').forEach(function (x) { x.classList.toggle('on', x.dataset.grid === cfg.grid); });
     $$('.preset').forEach(function (x) { x.classList.toggle('on', x.dataset.preset === cfg.preset); });
     $$('input[type=checkbox]').forEach(function (n) { if (n.id in cfg) n.checked = !!cfg[n.id]; });
@@ -310,7 +294,7 @@
     });
     var p = paperInfo();
     var budget = (p.ch - 10) * MM;                 // 再留 10mm 给页脚
-    var titleH = cfg.title ? 48 : 0;
+    var titleH = 48;
     /* 纸张/格子变化后，「每页字数」自动收敛到放得下的最大值，而不是抛一堆警告 */
     var autoNote = '';
     if (heights.length) {
@@ -341,7 +325,7 @@
     pages.forEach(function (pg, pi) {
       var wrap = el('div', 'sheet-wrap');
       var sheet = el('div', 'sheet');
-      if (pg.title && cfg.title) {
+      if (true) {
         var t = el('div', 'sheettitle');
         t.appendChild(el('h1', '', cfg.headText || '写字练习'));
         t.appendChild(el('div', 'sub', '生字 ' + cfg.chars.replace(/[^一-龥]/g, '').length + ' 个 · '

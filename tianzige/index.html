@@ -37,6 +37,14 @@
   .seg button+button{border-left:1px solid var(--line)}
   .seg button.on{background:var(--accent);color:#fff;font-weight:600}
   .row2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0}
+  /* 统一的「标签 | 控件 | 数值」三列网格，读起来整齐 */
+  .ctl{display:grid;grid-template-columns:62px 1fr 48px;align-items:center;gap:9px;margin:5px 0}
+  .ctl>label{font-size:13px;color:#39424c}
+  .ctl input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+  .ctl .val{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+  .ctlx{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6b7580;margin:-1px 0 8px 71px}
+  .segrow{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:9px;margin:5px 0}
+  .segrow>label{font-size:13px;color:#39424c}
   .row2 label{font-size:13.5px;color:#39424c}
   .row2 input[type=range]{flex:1 1 auto;max-width:140px;accent-color:var(--accent)}
   .row2 .val{font-size:12.5px;color:var(--muted);min-width:42px;text-align:right}
@@ -120,16 +128,16 @@
         <button class="preset" data-preset="mo">描红练习</button>
         <button class="preset" data-preset="bi">笔顺分解</button>
       </div>
-      <div class="hint">「每字一行」＝范字 + 2 格描红 + 空格，一个字只练一行（省纸）。<b>描红格数拖到 0</b> 就变成「范字 + 纯空格」；<b>练习行数拖到 2~3</b> 就多练几行。
-      <div class="hint">「范字 + 空格」最接近课堂生字本：第一格是范字，后面全留白让孩子自己写。下面的开关可以再微调。</div>
+      <div class="hint">「每字一行」＝范字 + 2 格描红 + 空格，一个字只练一行。<br>
+        想变「范字 + 纯空格」：把<b>描红格数拖到 0</b>。想多练几行：改<b>练习行数</b>。</div>
     </div>
 
     <div class="grp">
-      <h2>格型 / 纸张</h2>
-      <div class="row2"><label>格型</label>
+      <h2>纸张与格型</h2>
+      <div class="segrow"><label>格型</label>
         <div class="seg"><button class="seg" data-grid="tian">田字格</button><button class="seg" data-grid="mi">米字格</button></div>
       </div>
-      <div class="row2"><label>纸张</label>
+      <div class="segrow"><label>纸张</label>
         <span><select id="paper"><option value="A4">A4</option><option value="A5">A5</option></select>
         <select id="orient"><option value="portrait">纵向</option><option value="landscape">横向</option></select></span>
       </div>
@@ -137,49 +145,45 @@
 
     <div class="grp">
       <h2>版式</h2>
-      <div class="row2"><label>格子大小</label><input type="range" id="cell" min="10" max="40" step="1"><span class="val" id="cellV"></span></div>
-      <div class="row2"><label style="font-size:12.5px;color:#6b7580">格子自动铺满行宽</label><input type="checkbox" id="autoCell"></div>
-      <div class="row2"><label>每行几格</label><input type="range" id="perRow" min="1" max="16" step="1"><span class="val" id="perRowV"></span></div>
-      <div class="row2"><label>格子间距</label><input type="range" id="gap" min="0" max="5" step="0.2"><span class="val" id="gapV"></span></div>
+      <div class="ctl"><label>格子大小</label><input type="range" id="cell" min="10" max="40" step="1"><span class="val" id="cellV"></span></div>
+      <div class="ctlx"><input type="checkbox" id="autoCell">自动铺满行宽（按每行几格反推格子大小）</div>
+      <div class="ctl"><label>每行几格</label><input type="range" id="perRow" min="1" max="16" step="1"><span class="val" id="perRowV"></span></div>
+      <div class="ctl"><label>格子间距</label><input type="range" id="gap" min="0" max="5" step="0.2"><span class="val" id="gapV"></span></div>
       <div class="hint" id="hintRow"></div>
     </div>
 
     <div class="grp">
-      <h2>练习</h2>
-      <div class="row2"><label>每页字数</label><input type="range" id="perPage" min="1" max="8" step="1"><span class="val" id="perPageV"></span></div>
-      <div class="row2"><label style="font-size:12.5px;color:#6b7580">每页字数自动铺满</label><input type="checkbox" id="autoPage"></div>
-      <div class="row2"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
-      <div class="row2"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
-      <div class="hint">描红设 0 = 只有范字 + 空格，孩子直接在田字格里写（推荐）。<br>练习行数 1 = 每个字只练一行（省纸）；「格子自动铺满行宽」= 按每行几格自动算格子大小，每行 1 格就是超大字。</div>
+      <h2>练习量</h2>
+      <div class="ctl"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
+      <div class="ctlx"><input type="checkbox" id="strokeTrace">按笔顺拆：一格加一笔（3 画就占 3 格）</div>
+      <div class="ctl"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
+      <div class="ctl"><label>每页字数</label><input type="range" id="perPage" min="1" max="8" step="1"><span class="val" id="perPageV"></span></div>
+      <div class="ctlx"><input type="checkbox" id="autoPage">自动铺满整页（推荐）</div>
+      <div class="hint">描红只出现在<b>第一行</b>，从第一格起连续排；第二行起一律空着让孩子自己写。</div>
+    </div>
+
+    <div class="grp">
+      <h2>显示内容</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="pinyin">拼音</label>
+        <label><input type="checkbox" id="strokes">笔顺条</label>
+        <label><input type="checkbox" id="numbers">笔画标号</label>
+        <label><input type="checkbox" id="words">组词</label>
+        <label><input type="checkbox" id="idioms">成语</label>
+      </div>
     </div>
 
     <div class="grp">
       <h2>页眉 / 页脚</h2>
-      <input type="text" id="headText" placeholder="页眉标题，例如：写字练习" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px;margin-bottom:6px">
+      <input type="text" id="headText" placeholder="页眉标题" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px;margin-bottom:6px">
       <input type="text" id="footText" placeholder="页脚文字（留空则不显示）" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13.5px">
       <div class="hint">页眉下面那行（生字个数 / 格型 / 纸张 / 页码）是自动的。想加名字、日期就填这里。</div>
     </div>
 
     <div class="grp">
-      <h2>显示</h2>
-      <div class="checks">
-        <label><input type="checkbox" id="model">范字</label>
-        <label><input type="checkbox" id="pinyin">拼音</label>
-        <label><input type="checkbox" id="strokes">笔顺条</label>
-        <label><input type="checkbox" id="numbers">笔画标号</label>
-        <label><input type="checkbox" id="tips">占格要点</label>
-        <label><input type="checkbox" id="autoTips">自动占格（其他字）</label>
-        <label><input type="checkbox" id="words">组词</label>
-        <label><input type="checkbox" id="idioms">成语</label>
-        <label><input type="checkbox" id="title">页眉标题</label>
-      </div>
-      <div class="hint">「占格要点」只有课本精编的字有（人工写的，一句话）；其余字默认不出，勾「自动占格」也只给 2~3 条重点（压中线 / 主笔 / 字势）。</div>
-    </div>
-
-    <div class="grp">
       <h2>导出</h2>
-      <div class="hint">点右上角<b>导出 PDF</b> → 在打印对话框里把「目标 / 打印机」选成 <b>另存为 PDF</b>，纸张选 A4、边距选默认即可。<br>
-      描红是淡红色：<b>彩色打印最好</b>，黑白会变浅灰，同样能用。</div>
+      <div class="hint">点右上角<b>导出 PDF</b> → 打印对话框里「目标 / 打印机」选 <b>另存为 PDF</b>，纸张 A4、边距默认即可。<br>
+      描红是淡红色，彩色打印最好；黑白会变浅灰，同样能用。</div>
     </div>
   </aside>
 
