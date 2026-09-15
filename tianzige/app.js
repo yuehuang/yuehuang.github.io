@@ -9,16 +9,16 @@
   var DEFAULT_CHARS = '一二三上口耳目手日火田禾六七八十';
 
   var PRESETS = {
-    mo:   { label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
-    zi:   { label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
-    bi:   { label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
-    mo2:  { label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
+    mo:   { autoPage: 1, label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    zi:   { autoPage: 1, label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    bi:   { autoPage: 1, label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
+    mo2:  { autoPage: 1, label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
   };
 
   var cfg = {
     chars: DEFAULT_CHARS, preset: 'zi', grid: 'tian', paper: 'A4', orient: 'portrait',
     perPage: 3, perRow: 7, cell: 24, gap: 1.6, trace: 0, rows: 2,
-    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1
+    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -32,7 +32,7 @@
   var svgTag = function (t) { return document.createElementNS(SVGNS, t); };
 
   /* ---------------- 配置 <-> URL ---------------- */
-  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title'];
+  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     if (q.has('chars')) cfg.chars = q.get('chars');
@@ -160,11 +160,6 @@
     var b = el('section', 'block');
 
     var head = el('div', 'bhead');
-    var big = svgTag('svg');
-    big.setAttribute('viewBox', '0 0 1024 1024'); big.setAttribute('class', 'bglyph');
-    if (data.s) { big.appendChild(glyph(data.s, '#1c1c1c')); if (cfg.numbers) big.appendChild(numberLayer(data.m)); }
-    head.appendChild(big);
-
     var bi = el('div', 'binfo');
     var line1 = el('div');
     line1.appendChild(el('span', 'bchar', ch));
@@ -172,13 +167,8 @@
     bi.appendChild(line1);
 
     var meta = el('div', 'bmeta');
-    if (data.s) {
-      meta.appendChild(el('span', '', data.s.length + ' 画'));
-      if (names) {
-        meta.appendChild(el('span', '', ' · 笔顺：'));
-        meta.appendChild(el('span', 'order', names.join(' → ')));
-      }
-    } else meta.appendChild(el('span', 'warn', '（该字笔画数据未取到，需要联网一次）'));
+    if (data.s) meta.appendChild(el('span', '', data.s.length + ' 画'));
+    else meta.appendChild(el('span', 'warn', '（该字笔画数据未取到，需要联网一次）'));
     if (cfg.words && info && info.words && info.words.length) {
       meta.appendChild(el('span', '', ' · '));
       meta.appendChild(el('span', 'words', '组词：' + info.words.join('、')));
@@ -236,6 +226,7 @@
     var root = document.documentElement.style;
     root.setProperty('--cell', cfg.cell + 'mm');
     root.setProperty('--gap', cfg.gap + 'mm');
+    root.setProperty('--strip', Math.max(7, Math.min(12, Math.round(cfg.cell * 0.4))) + 'mm');
     root.setProperty('--pw', p.w + 'mm');
     root.setProperty('--ph', p.h + 'mm');
     var st = $('#pagestyle') || (function () { var e = document.createElement('style'); e.id = 'pagestyle'; document.head.appendChild(e); return e; })();
@@ -246,6 +237,7 @@
       var v = $('#' + p[0] + 'V'); if (v) v.textContent = cfg[p[0]] + p[1];
       var n = $('#' + p[0]);
       if (n && +n.value !== +cfg[p[0]]) n.value = cfg[p[0]];    // 自动调整后同步滑块位置
+      if (n && p[0] === 'perPage') { n.disabled = !!cfg.autoPage; n.style.opacity = cfg.autoPage ? .45 : 1; }
     });
     $$('.seg[data-grid]').forEach(function (x) { x.classList.toggle('on', x.dataset.grid === cfg.grid); });
     $$('.preset').forEach(function (x) { x.classList.toggle('on', x.dataset.preset === cfg.preset); });
@@ -270,12 +262,14 @@
     var titleH = cfg.title ? 48 : 0;
     /* 纸张/格子变化后，「每页字数」自动收敛到放得下的最大值，而不是抛一堆警告 */
     var autoNote = '';
-    if (heights.length && heights[0] > 0) {
-      var canFit = Math.max(1, Math.floor((budget - titleH) / heights[0]));
-      if (cfg.perPage > canFit) {
-        cfg.perPage = canFit;
-        autoNote = '（每页字数已按纸张自动调到 ' + canFit + '）';
-        writeURL();
+    if (heights.length) {
+      var sample = heights.slice(0, Math.min(6, heights.length));
+      var refH = Math.max.apply(null, sample) || 1;              // 用前几个字里最高的，避免低估
+      var canFit = Math.max(1, Math.floor((budget - titleH) / refH));
+      if (cfg.autoPage) {
+        if (cfg.perPage !== canFit) { cfg.perPage = canFit; autoNote = '（自动铺满）'; writeURL(); }
+      } else if (cfg.perPage > canFit) {
+        cfg.perPage = canFit; autoNote = '（每页字数已按纸张自动调到 ' + canFit + '）'; writeURL();
       }
     }
     var pages = [], cur = [], used = 0, forced = 0;

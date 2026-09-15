@@ -55,7 +55,7 @@
   .sheettitle h1{font-size:15pt;margin:0 0 2mm}
   .sheettitle .sub{font-size:9pt;color:#666;margin-bottom:3mm}
   .sheetfoot{font-size:8pt;color:#999;border-top:1px solid #eee;margin-top:4mm;padding-top:2mm;text-align:center}
-  .block{margin-bottom:4mm;break-inside:avoid}
+  .block{margin-bottom:2mm;break-inside:avoid}
   .bhead{display:flex;align-items:center;gap:4mm;border-bottom:1px solid #eee;padding-bottom:1.5mm}
   .bglyph{width:12mm;height:12mm;flex:0 0 auto}
   .binfo{flex:1 1 auto;min-width:0}
@@ -66,12 +66,12 @@
   .bmeta .warn{color:#c77700}
   .strip{display:flex;gap:1.6mm;align-items:flex-start}
   .sitem{text-align:center}
-  .sitem svg{width:12mm;height:12mm}
+  .sitem svg{width:var(--strip,12mm);height:var(--strip,12mm)}
   .sitem .lb{font-size:7pt;color:#666;margin-top:.5mm}
   .sitem .lb b{color:#d0342c}
-  .row{display:flex;gap:var(--gap);margin-top:2mm}
+  .row{display:flex;gap:var(--gap);margin-top:1.5mm}
   .row .cell{width:var(--cell);height:var(--cell);flex:0 0 auto;display:block}
-  .bfoot{font-size:9pt;color:#444;margin-top:1.5mm}
+  .bfoot{font-size:9pt;color:#444;margin-top:1.2mm}
   .bfoot .badge{font-size:7.5pt;color:#999;margin-left:1.5mm}
   .empty{color:var(--muted);padding:40px 0}
   @page{size:A4 portrait;margin:11mm 12mm}
@@ -143,7 +143,8 @@
 
     <div class="grp">
       <h2>练习</h2>
-      <div class="row2"><label>每页字数</label><input type="range" id="perPage" min="1" max="6" step="1"><span class="val" id="perPageV"></span></div>
+      <div class="row2"><label>每页字数</label><input type="range" id="perPage" min="1" max="8" step="1"><span class="val" id="perPageV"></span></div>
+      <div class="row2"><label style="font-size:12.5px;color:#6b7580">每页字数自动铺满</label><input type="checkbox" id="autoPage"></div>
       <div class="row2"><label>描红格数</label><input type="range" id="trace" min="0" max="3" step="1"><span class="val" id="traceV"></span></div>
       <div class="row2"><label>练习行数</label><input type="range" id="rows" min="1" max="3" step="1"><span class="val" id="rowsV"></span></div>
       <div class="hint">描红设 0 = 只有范字 + 空格，孩子直接在田字格里写（推荐）。</div>
