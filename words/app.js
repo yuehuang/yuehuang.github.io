@@ -118,19 +118,33 @@
     var it = quiz.list[quiz.i];
     box.appendChild(el('div', 'qprog', '第 ' + (quiz.i + 1) + ' / ' + quiz.list.length + ' 个'
       + '　·　认识 ' + quiz.right + ' · 生词 ' + quiz.wrong.length));
-    var q = el('div', 'qword');
-    var front = cfg.qdir === 'en2zh' ? it.w : (it.zh || it.w);
-    q.appendChild(el('div', 'qtext', front));
-    q.appendChild(spkBtn(it.w));
-    box.appendChild(q);
 
-    var ans = el('div', 'qans' + (quiz.revealed ? ' on' : ''));
-    ans.appendChild(el('div', 'qline', cfg.qdir === 'en2zh' ? (it.zh ? '中文：' + it.zh : '（离线词典未收录）') : ('英文：' + it.w)));
-    if (it.ipa) ans.appendChild(el('div', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'
-      + (it.syl ? '　' + it.syl : '')));
-    if (it.en) ans.appendChild(el('div', 'qen', it.en));
-    if (it.cn) ans.appendChild(el('div', 'qcn', it.cn));
-    box.appendChild(ans);
+    var en2zh = cfg.qdir === 'en2zh';
+    var prompt = el('div', 'qprompt');
+    if (en2zh) {
+      prompt.appendChild(writingBlock(it.w, 9));          // 看英文：单词压在四线三格上
+      prompt.appendChild(spkBtn(it.w));
+    } else {
+      prompt.appendChild(el('div', 'qtext', it.zh || it.w));   // 看中文：只给中文
+      prompt.appendChild(writingBlock('', 9));                 // 下面留空的四线三格，让孩子写
+    }
+    box.appendChild(prompt);
+
+    if (quiz.revealed) {
+      var ans = el('div', 'qans on');
+      if (!en2zh) ans.appendChild(writingBlock(it.w, 9));      // 中→英：答案给带线的单词
+      if (it.ipa) ans.appendChild(el('div', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+      var l3 = el('div', 'qpos');
+      if (it.pos) l3.appendChild(el('span', 'posTag', it.pos));
+      if (it.zh) l3.appendChild(el('span', 'qzh', it.zh));
+      if (l3.childNodes.length) ans.appendChild(l3);
+      if (it.syl) ans.appendChild(el('div', 'qsyl', it.syl.replace(/·/g, ' · ')));
+      if (it.en) ans.appendChild(el('div', 'qen', it.en));
+      if (it.cn) ans.appendChild(el('div', 'qcn', it.cn));
+      box.appendChild(ans);
+    } else {
+      box.appendChild(el('div', 'qmask', '想好了吗？点下面「看答案」'));
+    }
 
     var btns = el('div', 'qbtns');
     if (!quiz.revealed) {
@@ -363,6 +377,13 @@
       if (confirm('清空生词本？')) setWrong([]);
     });
     $('#print').addEventListener('click', function () { window.print(); });
+    var panel = $('.panel'), bd = $('#backdrop');
+    function closePanel() { panel.classList.remove('open'); bd.classList.remove('on'); }
+    $('#togglePanel').addEventListener('click', function () {
+      panel.classList.toggle('open'); bd.classList.toggle('on');
+    });
+    bd.addEventListener('click', closePanel);
+    window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
     $('#copy').addEventListener('click', function () { var b = this;
       (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject())
         .then(function () { b.textContent = '✓ 已复制'; setTimeout(function () { b.textContent = '复制分享链接'; }, 1500); })

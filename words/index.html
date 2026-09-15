@@ -92,9 +92,35 @@
         box-shadow:0 1px 3px rgba(16,24,40,.08),0 14px 40px -18px rgba(16,24,40,.25);text-align:center}
   .qprog{font-size:12.5px;color:var(--muted)}
   .qword{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 6px}
-  .qtext{font-family:"Times New Roman",Georgia,serif;font-size:40px;font-weight:700;letter-spacing:.5px}
-  .qans{min-height:96px;border-top:1px dashed #e3e6ea;padding-top:12px;margin-top:8px;color:#8b95a5;font-size:13px;display:flex;flex-direction:column;gap:4px;justify-content:center}
-  .qans.on{color:#1c2024}
+  .qtext{font-size:34px;font-weight:700;letter-spacing:.5px}
+  .only-mobile{display:none}
+  /* 手机上：设置收进抽屉，内容占满屏 */
+  @media (max-width:880px){
+    .layout{display:block}
+    .panel{position:fixed;left:0;top:0;bottom:0;width:88%;max-width:340px;z-index:60;
+           transform:translateX(-102%);transition:transform .22s ease;max-height:none;overflow:auto;
+           box-shadow:0 0 40px rgba(16,24,40,.28)}
+    .panel.open{transform:none}
+    .backdrop{position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:55;opacity:0;pointer-events:none;transition:.22s}
+    .backdrop.on{opacity:1;pointer-events:auto}
+    .stage{padding:10px 8px 40px}
+    .only-mobile{display:inline-block}
+    .hide-mobile{display:none}
+    .bar h1{font-size:15px}
+    .bar .sub{display:none}
+    .quiz{padding:18px 14px;border-radius:12px}
+    .qtext{font-size:30px}
+    .qbtns .btn{flex:1 1 0;padding:0 12px}
+  }
+  .qprompt{display:flex;flex-direction:column;align-items:center;gap:6px;margin:10px 0}
+  .qprompt .wlines{width:70%;max-width:340px}
+  .qans{border-top:1px dashed #e3e6ea;padding-top:12px;margin-top:8px;color:#1c2024;font-size:13px;
+        display:flex;flex-direction:column;gap:6px;align-items:center}
+  .qans .wlines{width:70%;max-width:340px}
+  .qpos{display:flex;align-items:baseline;gap:8px}
+  .qzh{font-size:16px}
+  .qsyl{font-family:"Times New Roman",Georgia,serif;font-size:18px;color:#c77700}
+  .qmask{min-height:60px;border-top:1px dashed #e3e6ea;margin-top:8px;padding-top:18px;color:#9aa4b0;font-size:13px}
   .qans .qline{font-size:17px}
   .qans .qipa{font-family:"Times New Roman",serif;color:#2b6cb0}
   .qans .qen{font-size:14px;color:#333}
@@ -115,7 +141,7 @@
     .sheet{transform:none !important;box-shadow:none !important;padding:0 !important;width:auto !important;min-height:0 !important;page-break-after:always}
     .sheet:last-child{page-break-after:auto}
   }
-  @media (max-width:880px){ .layout{display:block} .panel{width:auto;flex:none;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)} }
+
 </style>
 <body>
 
@@ -125,10 +151,12 @@
   <span class="sub">粘贴词表 → 卡片 / 默写纸 / 听写表</span>
   <span class="spacer"></span>
   <span id="status"></span>
-  <button class="btn" id="copy">复制分享链接</button>
+  <button class="btn only-mobile" id="togglePanel">⚙ 设置</button>
+  <button class="btn hide-mobile" id="copy">复制分享链接</button>
   <button class="btn primary" id="print">导出 PDF</button>
 </div>
 
+<div class="backdrop" id="backdrop"></div>
 <div class="layout">
   <aside class="panel no-print">
     <div class="grp">
