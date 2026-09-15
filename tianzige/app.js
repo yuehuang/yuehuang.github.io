@@ -1,16 +1,24 @@
-/* 田字格练习生成器 — 纯前端，无后端，不收集任何数据 */
+/* 田字格 / 米字格 字帖生成器 — 纯前端，无后端，不收集任何数据 */
 (function () {
   'use strict';
 
   var CDN = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/';
   var SVGNS = 'http://www.w3.org/2000/svg';
-  var MM = 96 / 25.4;                       // 1mm ≈ 3.7795px
-  var PAGE_H = 275 * MM;                    // A4 297 - 上下各 11mm 页边
+  var MM = 96 / 25.4;
+  var PAPER = { A4: { w: 210, h: 297, css: 'A4' }, A5: { w: 148, h: 210, css: 'A5' } };
   var DEFAULT_CHARS = '一二三上口耳目手日火田禾六七八十';
 
+  var PRESETS = {
+    mo:   { label: '描红练习',   perPage: 3, trace: 3, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    zi:   { label: '范字+空格',  perPage: 3, trace: 0, rows: 2, model: 1, numbers: 0, pinyin: 1, strokes: 1, tips: 1, words: 1 },
+    bi:   { label: '笔顺分解',   perPage: 3, trace: 0, rows: 2, model: 1, numbers: 1, pinyin: 1, strokes: 1, tips: 1, words: 0 },
+    mo2:  { label: '默写听写',   perPage: 2, trace: 0, rows: 3, model: 0, numbers: 0, pinyin: 0, strokes: 0, tips: 0, words: 0 }
+  };
+
   var cfg = {
-    chars: DEFAULT_CHARS, perPage: 3, perRow: 7, cell: 24,
-    trace: 3, rows: 2, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1
+    chars: DEFAULT_CHARS, preset: 'zi', grid: 'tian', paper: 'A4', orient: 'portrait',
+    perPage: 3, perRow: 7, cell: 24, gap: 1.6, trace: 0, rows: 2,
+    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -21,63 +29,70 @@
     if (txt != null) n.textContent = txt;
     return n;
   };
+  var svgTag = function (t) { return document.createElementNS(SVGNS, t); };
 
   /* ---------------- 配置 <-> URL ---------------- */
+  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     if (q.has('chars')) cfg.chars = q.get('chars');
-    ['perPage', 'perRow', 'cell', 'trace', 'rows'].forEach(function (k) {
-      if (q.has(k)) cfg[k] = Math.max(1, parseInt(q.get(k), 10) || cfg[k]);
-    });
-    ['strokes', 'tips', 'pinyin', 'words', 'title'].forEach(function (k) {
-      if (q.has(k)) cfg[k] = q.get(k) === '0' ? 0 : 1;
-    });
+    if (q.has('preset') && PRESETS[q.get('preset')]) { cfg.preset = q.get('preset'); Object.assign(cfg, PRESETS[cfg.preset]); }
+    if (q.has('grid')) cfg.grid = q.get('grid') === 'mi' ? 'mi' : 'tian';
+    if (q.has('paper')) cfg.paper = PAPER[q.get('paper')] ? q.get('paper') : 'A4';
+    if (q.has('orient')) cfg.orient = q.get('orient') === 'landscape' ? 'landscape' : 'portrait';
+    if (q.has('gap')) cfg.gap = parseFloat(q.get('gap')) || cfg.gap;
+    NUMK.forEach(function (k) { if (q.has(k)) cfg[k] = Math.max(0, parseInt(q.get(k), 10) || cfg[k]); });
+    BOOLK.forEach(function (k) { if (q.has(k)) cfg[k] = q.get(k) === '0' ? 0 : 1; });
   }
   function writeURL() {
     var q = new URLSearchParams();
-    q.set('chars', cfg.chars);
-    ['perPage', 'perRow', 'cell', 'trace', 'rows', 'strokes', 'tips', 'pinyin', 'words', 'title']
-      .forEach(function (k) { q.set(k, cfg[k]); });
+    q.set('chars', cfg.chars); q.set('preset', cfg.preset); q.set('grid', cfg.grid);
+    q.set('paper', cfg.paper); q.set('orient', cfg.orient); q.set('gap', cfg.gap);
+    NUMK.concat(BOOLK).forEach(function (k) { q.set(k, cfg[k]); });
     history.replaceState(null, '', location.pathname + '?' + q.toString());
+  }
+  function paperInfo() {
+    var p = PAPER[cfg.paper];
+    var w = cfg.orient === 'landscape' ? p.h : p.w;
+    var h = cfg.orient === 'landscape' ? p.w : p.h;
+    return { w: w, h: h, cw: w - 24, ch: h - 22 };     // 页边 12mm / 11mm
   }
 
   /* ---------------- 汉字数据 ---------------- */
   var cache = {};
   function loadChar(ch) {
     if (cache[ch]) return Promise.resolve(cache[ch]);
-    if (window.HANZI && window.HANZI[ch]) {
-      return Promise.resolve(cache[ch] = { s: window.HANZI[ch].s, m: window.HANZI[ch].m, src: 'local' });
-    }
+    if (window.HANZI && window.HANZI[ch]) return Promise.resolve(cache[ch] = { s: window.HANZI[ch].s, m: window.HANZI[ch].m });
     var key = 'hz_' + ch, v = null;
     try { v = localStorage.getItem(key); } catch (e) { }
-    if (v) { try { var d = JSON.parse(v); return Promise.resolve(cache[ch] = { s: d.s, m: d.m, src: 'cache' }); } catch (e) { } }
+    if (v) { try { var d = JSON.parse(v); return Promise.resolve(cache[ch] = { s: d.s, m: d.m }); } catch (e) { } }
     return fetch(CDN + encodeURIComponent(ch) + '.json')
-      .then(function (r) { if (!r.ok) throw new Error('404'); return r.json(); })
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
       .then(function (d) {
-        var o = { s: d.strokes, m: d.medians || [], src: 'cdn' };
+        var o = { s: d.strokes, m: d.medians || [] };
         try { localStorage.setItem(key, JSON.stringify(o)); } catch (e) { }
         return cache[ch] = o;
       })
-      .catch(function () { return cache[ch] = { s: null, m: [], src: 'fail' }; });
+      .catch(function () { return cache[ch] = { s: null, m: [] }; });
   }
 
-  /* ---------------- SVG 组装 ---------------- */
+  /* ---------------- 格子 / 字形 ---------------- */
   var POS = { '左上': '左上', '中上': '上方', '右上': '右上', '左中': '左侧', '中中': '中间', '右中': '右侧', '左下': '左下', '中下': '下方', '右下': '右下' };
   function posName(x, y) {
-    var c = x < 341 ? '左' : x < 683 ? '中' : '右';
-    var r = y < 341 ? '上' : y < 683 ? '中' : '下';
-    return POS[c + r];
+    return POS[(x < 341 ? '左' : x < 683 ? '中' : '右') + (y < 341 ? '上' : y < 683 ? '中' : '下')];
   }
-  function grid(w) {
+  function grid(w, mi) {
     w = w || 22;
-    var g = document.createElementNS(SVGNS, 'g');
-    var rect = document.createElementNS(SVGNS, 'rect');
+    var g = svgTag('g');
+    var rect = svgTag('rect');
     rect.setAttribute('x', w / 2); rect.setAttribute('y', w / 2);
     rect.setAttribute('width', 1024 - w); rect.setAttribute('height', 1024 - w);
     rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', '#e0837f'); rect.setAttribute('stroke-width', w);
     g.appendChild(rect);
-    [[512, 0, 512, 1024], [0, 512, 1024, 512]].forEach(function (a) {
-      var l = document.createElementNS(SVGNS, 'line');
+    var lines = [[512, 0, 512, 1024], [0, 512, 1024, 512]];
+    if (mi) lines.push([0, 0, 1024, 1024], [1024, 0, 0, 1024]);     // 米字格：加两条对角线
+    lines.forEach(function (a) {
+      var l = svgTag('line');
       l.setAttribute('x1', a[0]); l.setAttribute('y1', a[1]); l.setAttribute('x2', a[2]); l.setAttribute('y2', a[3]);
       l.setAttribute('stroke', '#e8b7b4'); l.setAttribute('stroke-width', w * 0.7);
       l.setAttribute('stroke-dasharray', (w * 2.1) + ' ' + (w * 1.5));
@@ -86,47 +101,68 @@
     return g;
   }
   function glyph(strokes, fill, upto) {
-    var g = document.createElementNS(SVGNS, 'g');
+    var g = svgTag('g');
     g.setAttribute('transform', 'translate(0,900) scale(1,-1)');
-    var list = (upto ? strokes.slice(0, upto) : strokes);
-    list.forEach(function (d, i) {
-      var p = document.createElementNS(SVGNS, 'path');
+    (upto ? strokes.slice(0, upto) : strokes).forEach(function (d, i) {
+      var p = svgTag('path');
       p.setAttribute('d', d);
       p.setAttribute('fill', upto ? (i === upto - 1 ? '#d0342c' : '#c8c8c8') : fill);
       g.appendChild(p);
     });
     return g;
   }
-  function svgCell(data, mode, cls) {
-    var s = document.createElementNS(SVGNS, 'svg');
+  /* 笔顺标号：在每笔起笔点画①②③（不受翻转影响，单独一层） */
+  function numberLayer(medians) {
+    var g = svgTag('g');
+    (medians || []).forEach(function (med, i) {
+      if (!med || !med.length) return;
+      var x = med[0][0], y = 900 - med[0][1];
+      var c = svgTag('circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 104);
+      c.setAttribute('fill', '#d0342c');
+      g.appendChild(c);
+      var t = svgTag('text');
+      t.setAttribute('x', x); t.setAttribute('y', y + 4);
+      t.setAttribute('fill', '#fff'); t.setAttribute('font-size', '136');
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+      t.setAttribute('font-family', '-apple-system,sans-serif'); t.setAttribute('font-weight', '700');
+      t.textContent = i + 1;
+      g.appendChild(t);
+    });
+    return g;
+  }
+  function svgCell(data, mode) {
+    var s = svgTag('svg');
     s.setAttribute('viewBox', '0 0 1024 1024');
-    s.setAttribute('class', 'cell ' + (cls || ''));
-    s.appendChild(grid());
-    if (data && data.s && mode === 'model') s.appendChild(glyph(data.s, '#1c1c1c'));
-    if (data && data.s && mode === 'trace') s.appendChild(glyph(data.s, '#f2adad'));
+    s.setAttribute('class', 'cell');
+    s.appendChild(grid(cfg.grid === 'mi' ? 18 : 22, cfg.grid === 'mi'));
+    if (data && data.s) {
+      if (mode === 'model') {
+        s.appendChild(glyph(data.s, '#1c1c1c'));
+        if (cfg.numbers) s.appendChild(numberLayer(data.m));
+      } else if (mode === 'trace') s.appendChild(glyph(data.s, '#f2adad'));
+    }
     return s;
   }
   function autoTip(data) {
     if (!data.m || !data.m.length) return '';
     return data.m.map(function (med, i) {
       var a = med[0], b = med[med.length - 1];
-      var from = posName(a[0], 900 - a[1]), to = posName(b[0], 900 - b[1]);
-      return '第' + (i + 1) + '笔：从' + from + '起笔，到' + to + '收笔';
+      return '第' + (i + 1) + '笔：从' + posName(a[0], 900 - a[1]) + '起笔，到' + posName(b[0], 900 - b[1]) + '收笔';
     }).join('；');
   }
 
-  /* ---------------- 生成一页 ---------------- */
+  /* ---------------- 单字块 ---------------- */
   function buildBlock(ch, data) {
     var info = (window.LESSON && window.LESSON[ch]) || null;
     var py = (info && info.py) || (window.PINYIN && window.PINYIN[ch]) || '';
     var names = (info && info.strokes) || null;
     var b = el('section', 'block');
 
-    /* 头部 */
     var head = el('div', 'bhead');
-    var big = document.createElementNS(SVGNS, 'svg');
+    var big = svgTag('svg');
     big.setAttribute('viewBox', '0 0 1024 1024'); big.setAttribute('class', 'bglyph');
-    if (data.s) big.appendChild(glyph(data.s, '#1c1c1c'));
+    if (data.s) { big.appendChild(glyph(data.s, '#1c1c1c')); if (cfg.numbers) big.appendChild(numberLayer(data.m)); }
     head.appendChild(big);
 
     var bi = el('div', 'binfo');
@@ -134,6 +170,7 @@
     line1.appendChild(el('span', 'bchar', ch));
     if (cfg.pinyin && py) line1.appendChild(el('span', 'bpy', py));
     bi.appendChild(line1);
+
     var meta = el('div', 'bmeta');
     if (data.s) {
       meta.appendChild(el('span', '', data.s.length + ' 画'));
@@ -141,9 +178,7 @@
         meta.appendChild(el('span', '', ' · 笔顺：'));
         meta.appendChild(el('span', 'order', names.join(' → ')));
       }
-    } else {
-      meta.appendChild(el('span', 'warn', '（该字笔画数据未取到，需要联网一次）'));
-    }
+    } else meta.appendChild(el('span', 'warn', '（该字笔画数据未取到，需要联网一次）'));
     if (cfg.words && info && info.words && info.words.length) {
       meta.appendChild(el('span', '', ' · '));
       meta.appendChild(el('span', 'words', '组词：' + info.words.join('、')));
@@ -155,9 +190,9 @@
       var strip = el('div', 'strip');
       data.s.forEach(function (_, i) {
         var item = el('div', 'sitem');
-        var s = document.createElementNS(SVGNS, 'svg');
+        var s = svgTag('svg');
         s.setAttribute('viewBox', '0 0 1024 1024');
-        s.appendChild(grid(14));
+        s.appendChild(grid(14, false));
         s.appendChild(glyph(data.s, null, i + 1));
         item.appendChild(s);
         var lb = el('div', 'lb');
@@ -170,42 +205,57 @@
     }
     b.appendChild(head);
 
-    /* 练习行 */
     var traceN = Math.min(cfg.trace, cfg.perRow - 1);
     for (var r = 0; r < cfg.rows; r++) {
       var row = el('div', 'row');
       for (var c = 0; c < cfg.perRow; c++) {
         var mode = 'blank';
-        if (r === 0) mode = c === 0 ? 'model' : (c <= traceN ? 'trace' : 'blank');
+        if (r === 0 && cfg.model) mode = c === 0 ? 'model' : (c <= traceN ? 'trace' : 'blank');
         else mode = c < traceN ? 'trace' : 'blank';
         row.appendChild(svgCell(data, mode));
       }
       b.appendChild(row);
     }
 
-    /* 占格提示 */
     if (cfg.tips) {
       var tip = info && info.tip ? info.tip : autoTip(data);
-      var f = el('div', 'bfoot');
       if (tip) {
+        var f = el('div', 'bfoot');
         f.appendChild(el('span', 'tipk', '占格：'));
         f.appendChild(document.createTextNode(tip));
         if (!(info && info.tip)) f.appendChild(el('span', 'badge', '自动生成·仅供参考'));
+        b.appendChild(f);
       }
-      b.appendChild(f);
     }
     return b;
   }
 
   /* ---------------- 分页 + 渲染 ---------------- */
-  function syncLabels() {
-    [['perPage', ''], ['perRow', ''], ['cell', 'mm'], ['trace', ''], ['rows', '']].forEach(function (p) {
-      var v = $('#' + p[0] + 'V'); if (v) v.textContent = cfg[p[0]] + p[1];
-    });
+  function applyVars() {
+    var p = paperInfo();
+    var root = document.documentElement.style;
+    root.setProperty('--cell', cfg.cell + 'mm');
+    root.setProperty('--gap', cfg.gap + 'mm');
+    root.setProperty('--pw', p.w + 'mm');
+    root.setProperty('--ph', p.h + 'mm');
+    var st = $('#pagestyle') || (function () { var e = document.createElement('style'); e.id = 'pagestyle'; document.head.appendChild(e); return e; })();
+    st.textContent = '@page{size:' + PAPER[cfg.paper].css + ' ' + cfg.orient + ';margin:11mm 12mm}';
   }
-
+  function syncLabels() {
+    [['perPage', ''], ['perRow', ''], ['cell', 'mm'], ['gap', 'mm'], ['trace', ''], ['rows', '']].forEach(function (p) {
+      var v = $('#' + p[0] + 'V'); if (v) v.textContent = cfg[p[0]] + p[1];
+      var n = $('#' + p[0]);
+      if (n && +n.value !== +cfg[p[0]]) n.value = cfg[p[0]];    // 自动调整后同步滑块位置
+    });
+    $$('.seg[data-grid]').forEach(function (x) { x.classList.toggle('on', x.dataset.grid === cfg.grid); });
+    $$('.preset').forEach(function (x) { x.classList.toggle('on', x.dataset.preset === cfg.preset); });
+    $$('input[type=checkbox]').forEach(function (n) { if (n.id in cfg) n.checked = !!cfg[n.id]; });
+    var p = paperInfo();
+    var maxRow = Math.max(3, Math.floor((p.cw + cfg.gap) / (cfg.cell + cfg.gap)));
+    $('#hintRow').textContent = maxRow < 10 ? (cfg.paper + (cfg.orient === 'landscape' ? ' 横向' : ' 纵向') + ' 每行最多 ' + maxRow + ' 格') : '';
+  }
   function paint(blocks) {
-    document.documentElement.style.setProperty('--cell', cfg.cell + 'mm');
+    applyVars();
     var preview = $('#preview');
     preview.innerHTML = '';
     var measure = el('div', 'sheet measure');
@@ -213,19 +263,28 @@
     preview.appendChild(measure);
 
     var heights = blocks.map(function (b) {
-      var cs = getComputedStyle(b);
-      return b.getBoundingClientRect().height + parseFloat(cs.marginBottom || 0);
+      return b.getBoundingClientRect().height + parseFloat(getComputedStyle(b).marginBottom || 0);
     });
-
-    var pages = [], cur = [], used = 0, budget = PAGE_H - 39;   // 39px 留给页脚
-    var titleH = cfg.title ? 48 : 0, forced = 0;
+    var p = paperInfo();
+    var budget = (p.ch - 10) * MM;                 // 再留 10mm 给页脚
+    var titleH = cfg.title ? 48 : 0;
+    /* 纸张/格子变化后，「每页字数」自动收敛到放得下的最大值，而不是抛一堆警告 */
+    var autoNote = '';
+    if (heights.length && heights[0] > 0) {
+      var canFit = Math.max(1, Math.floor((budget - titleH) / heights[0]));
+      if (cfg.perPage > canFit) {
+        cfg.perPage = canFit;
+        autoNote = '（每页字数已按纸张自动调到 ' + canFit + '）';
+        writeURL();
+      }
+    }
+    var pages = [], cur = [], used = 0, forced = 0;
     blocks.forEach(function (b, i) {
       var h = heights[i];
       var lim = budget - (pages.length === 0 ? titleH : 0);
-      var overH = cur.length && used + h > lim;            // 高度放不下
-      var overN = cur.length >= cfg.perPage;               // 超过「每页字数」
+      var overH = cur.length && used + h > lim, overN = cur.length >= cfg.perPage;
       if (cur.length && (overH || overN)) {
-        if (overH && !overN) forced++;                     // 想放 N 个但高度不够
+        if (overH && !overN) forced++;
         pages.push({ items: cur, title: pages.length === 0 }); cur = []; used = 0;
       }
       cur.push(b); used += h;
@@ -239,79 +298,83 @@
       var sheet = el('div', 'sheet');
       if (pg.title && cfg.title) {
         var t = el('div', 'sheettitle');
-        t.appendChild(el('h1', '', '田字格写字练习'));
-        t.appendChild(el('div', 'sub', '语文一年级上册 · 生字 ' + cfg.chars.length + ' 个 · 第 ' + (pi + 1) + ' / ' + total + ' 页'));
+        t.appendChild(el('h1', '', '写字练习 · ' + (cfg.grid === 'mi' ? '米字格' : '田字格')));
+        t.appendChild(el('div', 'sub', '生字 ' + cfg.chars.replace(/[^一-龥]/g, '').length + ' 个 · ' + cfg.paper
+          + (cfg.orient === 'landscape' ? ' 横向' : ' 纵向') + ' · 第 ' + (pi + 1) + ' / ' + total + ' 页'));
         sheet.appendChild(t);
       }
       pg.items.forEach(function (b) { sheet.appendChild(b); });
-      var ft = el('div', 'sheetfoot', '描红 → 临写 → 自查：这一笔是不是压在横中线上？');
-      sheet.appendChild(ft);
+      sheet.appendChild(el('div', 'sheetfoot', '描红 → 临写 → 自查：这一笔是不是压在横中线上？'));
       wrap.appendChild(sheet);
       preview.appendChild(wrap);
     });
-    $('#count').textContent = '共 ' + total + ' 页'
-      + (forced ? '（有 ' + forced + ' 页因高度不够少放了 1 个字，可调小格子或减少行数）' : '')
-      + ' · 每页 ' + cfg.perPage + ' 字';
+    $('#count').textContent = '共 ' + total + ' 页 · 每页 ' + cfg.perPage + ' 字' + autoNote
+      + (forced ? '（有 ' + forced + ' 页高度不够，建议调小格子或减少行数）' : '');
     fit();
   }
-
   function fit() {
     var box = $('#preview');
-    var avail = box.clientWidth - 8;
-    var s = Math.min(1, avail / (210 * MM));
+    var s = Math.min(1, (box.clientWidth - 8) / (paperInfo().w * MM));
     document.documentElement.style.setProperty('--fit', s);
   }
 
   function render() {
     var chars = [];
-    cfg.chars.replace(/[^一-龥]/g, '').split('').forEach(function (c) {
-      if (chars.indexOf(c) < 0) chars.push(c);
-    });
-    if (!chars.length) { $('#preview').innerHTML = '<p class="empty">请输入要练的生字</p>'; return; }
+    cfg.chars.replace(/[^一-龥]/g, '').split('').forEach(function (c) { if (chars.indexOf(c) < 0) chars.push(c); });
+    var p = paperInfo();
+    var maxRow = Math.max(3, Math.floor((p.cw + cfg.gap) / (cfg.cell + cfg.gap)));
+    if (cfg.perRow > maxRow) cfg.perRow = maxRow;
+    var n = $ ('#perRow'); if (n) { n.max = Math.min(10, maxRow); if (+n.value > maxRow) n.value = maxRow; }
+    if (!chars.length) { $('#preview').innerHTML = '<p class="empty">请输入要练的生字</p>'; $('#count').textContent = ''; return; }
     $('#status').textContent = '正在准备字形…';
     Promise.all(chars.map(loadChar)).then(function (list) {
       var data = {};
       chars.forEach(function (c, i) { data[c] = list[i]; });
-      var blocks = chars.map(function (c) { return buildBlock(c, data[c]); });
-      paint(blocks);
+      paint(chars.map(function (c) { return buildBlock(c, data[c]); }));
       var fail = chars.filter(function (c) { return !data[c].s; });
-      $('#status').textContent = fail.length
-        ? '⚠ ' + fail.join('、') + ' 的笔画数据需要联网获取，其余已生成'
-        : '已生成 ' + chars.length + ' 个字的练习页';
+      $('#status').textContent = fail.length ? '⚠ ' + fail.join('、') + ' 需要联网获取笔画数据'
+        : '已生成 ' + chars.length + ' 个字';
+      syncLabels();
     });
   }
 
   /* ---------------- 控件 ---------------- */
+  function applyPreset(id, rerender) {
+    cfg.preset = id;
+    Object.assign(cfg, PRESETS[id]);
+    if (rerender !== false) { onChange(); }
+  }
   function bind() {
-    var map = { perPage: 'perPage', perRow: 'perRow', cell: 'cell', trace: 'trace', rows: 'rows' };
-    Object.keys(map).forEach(function (k) {
-      var n = $('#' + map[k]);
-      n.value = cfg[k];
-      n.addEventListener('input', function () { cfg[k] = parseInt(n.value, 10); onChange(); });
-    });
-    ['strokes', 'tips', 'pinyin', 'words', 'title'].forEach(function (k) {
-      var n = $('#' + k);
+    [['perPage', 'perPage'], ['perRow', 'perRow'], ['cell', 'cell'], ['gap', 'gap'], ['trace', 'trace'], ['rows', 'rows']]
+      .forEach(function (kv) {
+        var n = $('#' + kv[1]);
+        n.value = cfg[kv[0]];
+        n.addEventListener('input', function () { cfg[kv[0]] = parseInt(n.value, 10); if (cfg.preset !== 'custom') cfg.preset = 'custom'; onChange(); });
+      });
+    BOOLK.forEach(function (k) {
+      var n = $('#' + k); if (!n) return;
       n.checked = !!cfg[k];
-      n.addEventListener('change', function () { cfg[k] = n.checked ? 1 : 0; onChange(); });
+      n.addEventListener('change', function () { cfg[k] = n.checked ? 1 : 0; cfg.preset = 'custom'; onChange(); });
     });
+    $$('.preset').forEach(function (b) { b.addEventListener('click', function () { applyPreset(b.dataset.preset); }); });
+    $$('.seg[data-grid]').forEach(function (b) { b.addEventListener('click', function () { cfg.grid = b.dataset.grid; onChange(); }); });
+    $('#paper').value = cfg.paper;
+    $('#paper').addEventListener('change', function () { cfg.paper = this.value; onChange(); });
+    $('#orient').value = cfg.orient;
+    $('#orient').addEventListener('change', function () { cfg.orient = this.value; onChange(); });
     $('#chars').value = cfg.chars;
     $('#chars').addEventListener('input', function () { cfg.chars = $('#chars').value; onChange(); });
     $('#print').addEventListener('click', function () { window.print(); });
     $('#copy').addEventListener('click', function () {
       var btn = this;
-      navigator.clipboard.writeText(location.href).then(function () {
-        btn.textContent = '✓ 链接已复制'; setTimeout(function () { btn.textContent = '复制分享链接'; }, 1500);
-      }).catch(function () { prompt('复制这个链接：', location.href); });
+      (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject())
+        .then(function () { btn.textContent = '✓ 已复制'; setTimeout(function () { btn.textContent = '复制分享链接'; }, 1500); })
+        .catch(function () { prompt('复制这个链接：', location.href); });
     });
     window.addEventListener('resize', fit);
   }
-  var t = null;
-  function onChange() {
-    writeURL();
-    syncLabels();
-    clearTimeout(t);
-    t = setTimeout(render, 180);
-  }
+  var timer = null;
+  function onChange() { writeURL(); syncLabels(); clearTimeout(timer); timer = setTimeout(render, 160); }
 
   readURL();
   bind();

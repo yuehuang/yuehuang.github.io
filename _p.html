@@ -183,5 +183,14 @@
 <script src="../data/lesson.js"></script>
 <script src="../data/hanzi.js"></script>
 <script src="app.js"></script>
-</body>
+<script>
+var iv=setInterval(function(){ if(document.querySelector('.block')){clearInterval(iv);
+ var g=function(id){var e=document.getElementById(id);return e?(e.value||e.textContent):'-'};
+ var cell=document.querySelector('.row .cell');
+ var lines=cell?cell.querySelectorAll('line').length:0;
+ var circles=document.querySelectorAll('.cell circle').length;
+ document.title='DBG|perRow='+g('perRow')+' cell='+g('cellV')+' gap='+g('gapV')+' hintRow='+g('hintRow')
+   +'|格内线数='+lines+'|标号圆圈='+circles+'|count='+g('count');
+}},100);
+</script></body>
 </html>
