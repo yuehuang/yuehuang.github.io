@@ -122,16 +122,16 @@
     var en2zh = cfg.qdir === 'en2zh';
     var prompt = el('div', 'qprompt');
     if (en2zh) {
-      prompt.appendChild(writingBlock(it.w, 9));          // 看英文：单词压在四线三格上
+      prompt.appendChild(writingBlock(it.w, 21));         // 看英文：单词压在四线三格上
     } else {
       prompt.appendChild(el('div', 'qtext', it.zh || it.w));   // 看中文：只给中文
-      prompt.appendChild(writingBlock('', 9));                 // 下面留空的四线三格，让孩子写
+      prompt.appendChild(writingBlock('', 21));                // 下面留空的四线三格，让孩子写
     }
     box.appendChild(prompt);
 
     if (quiz.revealed) {
       var ans = el('div', 'qans on');
-      if (!en2zh) ans.appendChild(writingBlock(it.w, 9));      // 中→英：答案给带线的单词
+      if (!en2zh) ans.appendChild(writingBlock(it.w, 21));     // 中→英：答案给带线的单词
       var qi = el('div', 'wiparow');
       if (it.ipa) qi.appendChild(el('span', 'qipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
       qi.appendChild(spkBtn(it.w));                       // 喇叭跟着音标（中→英时不会提前泄题）
@@ -200,17 +200,19 @@
 
   /* ---------- 四线三格 + 单词（英文书写参考线）---------- */
   var NS = 'http://www.w3.org/2000/svg';
-  function writingBlock(word, sp, fsFixed) {
-    sp = sp || 10;
-    var W = 100, top = sp * 0.55, H = top + 3 * sp + sp * 0.3;
+  function writingBlock(word, fs) {
+    /* 关键：线距由字号反推 —— 中间一格的净空 = 字体 x-height（Times ≈ 0.447 em），
+       这样 a/c/e/m/n/o… 的头顶正好贴第 2 条线，底坐在第 3 条线（基线）上。 */
+    var XR = 0.460;   // Times New Roman 实测 x-height/em（用 canvas 量的）
+    fs = fs || 21;
+    var W = 100, sp = fs * XR, top = sp * 0.75, H = top + 3 * sp + sp * 0.35;
     var s = document.createElementNS(NS, 'svg');
     s.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     s.setAttribute('class', 'wlines');
-    /* 4 条线：上、下粗（深一点）；中间两根细，靠下那根（基线）虚线 + 亮蓝 */
     var st = [
       { w: 1.2, c: '#8ea4bc', dash: '' },          // ① 顶线：粗
-      { w: 0.6, c: '#cbd6e2', dash: '' },          // ② 细
-      { w: 0.7, c: '#e0a458', dash: '3.4 2.6' },   // ③ 基线：细 · 虚线 · 暖橙（突出但不刺眼）
+      { w: 0.6, c: '#cbd6e2', dash: '' },          // ② x-height 线：细（字母头顶贴这条）
+      { w: 0.7, c: '#e0a458', dash: '3.4 2.6' },   // ③ 基线：细 · 虚线 · 暖橙
       { w: 1.2, c: '#8ea4bc', dash: '' }           // ④ 底线：粗
     ];
     st.forEach(function (k, i) {
@@ -222,24 +224,24 @@
       s.appendChild(l);
     });
     if (word) {
-      var fs = fsFixed || Math.min(sp * 1.9, (W - 10) / (word.length * 0.5));
       var t = document.createElementNS(NS, 'text');
-      t.setAttribute('x', W / 2);                      // 居中
+      t.setAttribute('x', W / 2);
       t.setAttribute('y', top + 2 * sp);               // 基线压在第 3 条线上
       t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('font-size', fs.toFixed(1));
-      t.setAttribute('font-family', '"Times New Roman",Georgia,serif');
-      t.setAttribute('fill', '#1c2024');
+      t.setAttribute('font-size', fs.toFixed(2));
+      t.setAttribute('font-family', '"Times New Roman",Times,Georgia,serif');
+      t.setAttribute('fill', '#1c1c1c');
       t.textContent = word;
       s.appendChild(t);
     }
     return s;
   }
+  var writingH = function (fs) { var sp = fs * 0.460; return (sp * 0.75 + 3 * sp + sp * 0.35) / 100; };  // 高度/宽度比
 
   /* ---------- 三种输出 ---------- */
   function cardItem(it, fs) {
     var c = el('div', 'wcard');
-    c.appendChild(writingBlock(it.w, 10, fs));         // ① 单词 + 四线三格（全篇统一字号）
+    c.appendChild(writingBlock(it.w, fs));             // ① 单词 + 四线三格（全篇统一字号）
     var ipaRow = el('div', 'wiparow');                 // ② 音标（喇叭就放它右边）
     if (cfg.ipa && it.ipa) ipaRow.appendChild(el('span', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
     ipaRow.appendChild(spkBtn(it.w));
@@ -278,7 +280,7 @@
       }
       b.appendChild(s);
     }
-    b.appendChild(writingBlock('', 6.2));
+    b.appendChild(writingBlock('', 19));
     return b;
   }
   function listRow(it, i) {
@@ -307,17 +309,45 @@
         sheet.appendChild(t); pages.push(sheet);
       };
       if (cfg.mode === 'card') {
-        /* 统一字号：按最长单词算，全篇一致，不会一张大一张小 */
+        /* 统一字号：按最长单词算，全篇一致 */
         var maxLen = Math.max.apply(null, items.map(function (x) { return x.w.length; }));
-        var fsUni = Math.min(10 * 1.95, (100 - 10) / (maxLen * 0.5));
+        var fsUni = Math.min(24, (100 - 12) / (maxLen * 0.5));
+
+        /* 用自动高度先量一遍，拿到卡片真实内容高度（不再靠猜） */
+        var probe = el('div', 'wgrid probe');
+        probe.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)';
+        items.forEach(function (it) { probe.appendChild(cardItem(it, fsUni)); });
+        document.body.appendChild(probe);
+        var contentH = 0;
+        Array.prototype.forEach.call(probe.children, function (c) {
+          contentH = Math.max(contentH, c.getBoundingClientRect().height);
+        });
+        document.body.removeChild(probe);
+
+        var gapPx = 3 * MM, availPx = (275 - 26 - 8) * MM;      // 页面可用高度
+        var rowsFit = Math.max(1, Math.floor((availPx + gapPx) / (contentH + gapPx)));
+        var rowNote = '';
+        if (cfg.rows > rowsFit) {
+          cfg.rows = rowsFit; rowNote = '（行数已按卡片实际高度自动收到 ' + rowsFit + ' 行）';
+          var rs = $('#rows'); if (rs) { rs.value = rowsFit; }
+        }
+        /* 卡片高度：不低于内容高度；行数少时均分整页，卡片更舒展 */
+        var cardH = Math.max(contentH, (availPx - (cfg.rows - 1) * gapPx) / cfg.rows);
         var perPage = cfg.cols * cfg.rows;
         for (var i = 0; i < items.length; i++) {
           if (i % perPage === 0) addSheet();
-          if (i % perPage === 0) { }
           var grid = sheet.querySelector('.wgrid');
-          if (!grid) { grid = el('div', 'wgrid'); grid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)'; grid.style.setProperty('--cardh', ((275 - 18 - (cfg.rows - 1) * 4) / cfg.rows).toFixed(1) + 'mm'); sheet.appendChild(grid); }
+          if (!grid) {
+            grid = el('div', 'wgrid');
+            grid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ',1fr)';
+            grid.style.gap = '3mm';
+            grid.style.setProperty('--cardh', cardH.toFixed(1) + 'px');
+            sheet.appendChild(grid);
+          }
           grid.appendChild(cardItem(items[i], fsUni));
         }
+        if (rowNote) setTimeout(function () { }, 0);
+        $('#rowNote') && ($('#rowNote').textContent = rowNote);
       } else if (cfg.mode === 'dictate') {
         var perD = 6;
         items.forEach(function (it, i) {
@@ -343,7 +373,7 @@
       wrap.innerHTML = '';
       pages.forEach(function (p) { var w = el('div', 'sheet-wrap'); w.appendChild(p); wrap.appendChild(w); });
       if (cfg.footText) pages.forEach(function (p) { p.appendChild(el('div', 'sheetfoot', cfg.footText)); });
-      $('#count').textContent = '共 ' + pages.length + ' 页 · ' + items.length + ' 个词';
+      $('#count').textContent = '共 ' + pages.length + ' 页 · ' + items.length + ' 个词' + (typeof rowNote !== 'undefined' ? rowNote : '');
       var miss = items.filter(function (x) { return x.src === 'none' || x.src === 'net'; }).length;
       $('#status').textContent = miss ? ('已生成 ' + items.length + ' 个词（' + miss + ' 个不在离线词典，已联网补/待补）') : ('已生成 ' + items.length + ' 个词');
       fit();

@@ -47,6 +47,8 @@
   .sheetfoot{font-size:8pt;color:#999;border-top:1px solid #eee;margin-top:4mm;padding-top:2mm;text-align:center}
   /* 单词卡 */
   .wgrid{display:grid;gap:3mm}
+  .probe{position:absolute;left:-9999px;top:0;visibility:hidden}
+  .probe .wcard{height:auto !important}          /* 量真实内容高度用 */
   .wcard{border:1px dashed #cfcfcf;border-radius:3mm;padding:3mm;height:var(--cardh,62mm);position:relative;
          display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;break-inside:avoid;text-align:center;
          justify-content:center}   /* 内容垂直居中：例句既不贴底，卡片也不会显得上重下空 */
@@ -210,7 +212,8 @@
       <h2>卡片版式</h2>
       <div class="ctl"><label>每页列数</label><input type="range" id="cols" min="2" max="4" step="1"><span class="val" id="colsV"></span></div>
       <div class="ctl"><label>每页行数</label><input type="range" id="rows" min="2" max="4" step="1"><span class="val" id="rowsV"></span></div>
-      <div class="hint">默认 2 列 × 3 行 = 每页 6 张卡（卡片大、字也大）。要省纸再用 3 列。</div>
+      <div class="hint">默认 2 列 × 3 行 = 每页 6 张卡（卡片大、字也大）。要省纸再用 3 列。行数超了会自动收，不会把内容挤到边框外。</div>
+      <div class="hint" id="rowNote" style="color:#c77700"></div>
     </div>
 
     <div class="grp only-quiz">
