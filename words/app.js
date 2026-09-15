@@ -280,7 +280,7 @@
       }
       b.appendChild(s);
     }
-    b.appendChild(writingBlock('', 19));
+    b.appendChild(writingBlock('', 14));   // 默写纸：格子小一点，一页 6 个词刚好
     return b;
   }
   function listRow(it, i) {
