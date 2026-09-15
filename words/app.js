@@ -8,14 +8,14 @@
   var el = function (t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
 
   var cfg = {
-    words: '', mode: 'card', cols: 3, rows: 4,
-    ipa: 1, syl: 1, zh: 1, en: 1, cn: 1,        // 卡片显示项
+    words: '', mode: 'card', cols: 3, rows: 3,
+    ipa: 1, pos: 1, syl: 1, zh: 1, en: 1, cn: 1,  // 卡片显示项
     hintZh: 1, hintIpa: 1, hintBlank: 1,        // 默写纸提示
     shuffle: 0, headText: '英语单词卡', footText: '',
     qdir: 'en2zh'                             // 出题方向：en2zh 看英文想中文 / zh2en 看中文想英文
   };
   var WK = 'words_wrong_v1';                  // 生词本（存本机浏览器）
-  var BOOLK = ['ipa', 'syl', 'zh', 'en', 'cn', 'hintZh', 'hintIpa', 'hintBlank', 'shuffle'];
+  var BOOLK = ['ipa', 'pos', 'syl', 'zh', 'en', 'cn', 'hintZh', 'hintIpa', 'hintBlank', 'shuffle'];
   var NUMK = ['cols', 'rows'];
 
   function readURL() {
@@ -42,19 +42,19 @@
     var k = w.toLowerCase();
     if (window.UNIT1 && window.UNIT1[k]) {
       var u = window.UNIT1[k];
-      return Promise.resolve({ w: w, ipa: u.ipa, syl: u.syl, zh: u.zh, en: u.en, cn: u.cn, src: 'unit' });
+      return Promise.resolve({ w: w, ipa: u.ipa, pos: u.pos || '', syl: u.syl, zh: u.zh, en: u.en, cn: u.cn, src: 'unit' });
     }
     var e = window.ENZH && window.ENZH[k];
-    if (e) return Promise.resolve({ w: w, ipa: e[0], syl: '', zh: e[1], en: '', cn: '', src: 'dict' });
+    if (e) return Promise.resolve({ w: w, ipa: e[0], pos: e[1] || '', syl: '', zh: e[2] || '', en: '', cn: '', src: 'dict' });
     if (netCache[k]) return Promise.resolve(netCache[k]);
     return fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(k))
       .then(function (r) { if (!r.ok) throw 0; return r.json(); })
       .then(function (d) {
         var p = (d[0].phonetics || []).filter(function (x) { return x.text; })[0];
-        var o = { w: w, ipa: (p && p.text) || '', syl: '', zh: '', en: '', cn: '', src: 'net' };
+        var o = { w: w, ipa: (p && p.text) || '', pos: '', syl: '', zh: '', en: '', cn: '', src: 'net' };
         netCache[k] = o; return o;
       })
-      .catch(function () { var o = { w: w, ipa: '', syl: '', zh: '', en: '', cn: '', src: 'none' }; netCache[k] = o; return o; });
+      .catch(function () { var o = { w: w, ipa: '', pos: '', syl: '', zh: '', en: '', cn: '', src: 'none' }; netCache[k] = o; return o; });
   }
   function parseWords() {
     var out = [];
@@ -182,19 +182,47 @@
     return b;
   }
 
+  /* ---------- 四线三格 + 单词（英文书写参考线）---------- */
+  var NS = 'http://www.w3.org/2000/svg';
+  function writingBlock(word, sp) {
+    sp = sp || 10;
+    var W = 100, top = sp * 0.6, H = top + 3 * sp + sp * 0.3;      // 4 条线 / 3 个格
+    var s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    s.setAttribute('class', 'wlines');
+    [0, 1, 2, 3].forEach(function (i) {
+      var y = top + i * sp, l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', 2); l.setAttribute('x2', W - 2);
+      l.setAttribute('y1', y); l.setAttribute('y2', y);
+      l.setAttribute('stroke', i === 2 ? '#98b0c8' : '#c9d6e4');   // 第 3 条是基线，画深一点
+      l.setAttribute('stroke-width', i === 2 ? 0.9 : 0.7);
+      s.appendChild(l);
+    });
+    if (word) {
+      var fs = Math.min(sp * 1.9, (W - 6) / (word.length * 0.52));
+      var t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', 3); t.setAttribute('y', top + 2 * sp);    // 基线落在第 3 条线上
+      t.setAttribute('font-size', fs.toFixed(1));
+      t.setAttribute('font-family', '"Times New Roman",Georgia,serif');
+      t.setAttribute('fill', '#1c2024');
+      t.textContent = word;
+      s.appendChild(t);
+    }
+    return s;
+  }
+
   /* ---------- 三种输出 ---------- */
   function cardItem(it) {
     var c = el('div', 'wcard');
-    var top = el('div', 'wtop');
-    top.appendChild(el('b', 'wword', it.w));
-    top.appendChild(spkBtn(it.w));
-    c.appendChild(top);
-    var l2 = el('div', 'wsub');
-    if (cfg.ipa && it.ipa) l2.appendChild(el('span', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
-    if (cfg.syl && it.syl) l2.appendChild(el('span', 'wsyl', it.syl));
-    if (l2.childNodes.length) c.appendChild(l2);
-    if (cfg.zh && it.zh) c.appendChild(el('div', 'wzh', it.zh));
-    if (cfg.en && it.en) c.appendChild(el('div', 'wen', it.en));
+    c.appendChild(spkBtn(it.w));                       // 🔊 屏幕用，右上角
+    c.appendChild(writingBlock(it.w));                 // ① 单词 + 四线三格
+    if (cfg.ipa && it.ipa) c.appendChild(el('div', 'wipa', '/' + it.ipa.replace(/^\/|\/$/g, '') + '/'));
+    var l3 = el('div', 'wpos');
+    if (cfg.pos && it.pos) l3.appendChild(el('span', 'posTag', it.pos));
+    if (cfg.zh && it.zh) l3.appendChild(el('span', 'wzh', it.zh));
+    if (l3.childNodes.length) c.appendChild(l3);
+    if (cfg.syl && it.syl) c.appendChild(el('div', 'wsylBig', it.syl.replace(/·/g, ' · ')));  // ④ 音节
+    if (cfg.en && it.en) c.appendChild(el('div', 'wen', it.en));                               // ⑤ 例句
     if (cfg.cn && it.cn) c.appendChild(el('div', 'wcn', it.cn));
     if (it.src === 'net') c.appendChild(el('div', 'wtip', '音标来自联网'));
     if (it.src === 'none') c.appendChild(el('div', 'wtip', '词典未收录'));
@@ -223,7 +251,7 @@
       }
       b.appendChild(s);
     }
-    b.appendChild(el('div', 'dline'));
+    b.appendChild(writingBlock('', 6.2));
     return b;
   }
   function listRow(it, i) {
@@ -261,7 +289,7 @@
           grid.appendChild(cardItem(items[i]));
         }
       } else if (cfg.mode === 'dictate') {
-        var perD = 8;
+        var perD = 6;
         items.forEach(function (it, i) {
           if (i % perD === 0) addSheet();
           sheet.appendChild(dictItem(it, i));

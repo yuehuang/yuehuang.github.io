@@ -47,14 +47,17 @@
   .sheetfoot{font-size:8pt;color:#999;border-top:1px solid #eee;margin-top:4mm;padding-top:2mm;text-align:center}
   /* 单词卡 */
   .wgrid{display:grid;gap:3mm}
-  .wcard{border:1px dashed #cfcfcf;border-radius:3mm;padding:3mm;height:var(--cardh,62mm);
+  .wcard{border:1px dashed #cfcfcf;border-radius:3mm;padding:3mm;height:var(--cardh,62mm);position:relative;
          display:flex;flex-direction:column;gap:1mm;overflow:hidden;break-inside:avoid}
   .wtop{display:flex;align-items:baseline;justify-content:space-between}
   .wword{font-family:"Times New Roman",Georgia,serif;font-size:16pt;letter-spacing:.3px}
   .wsub{display:flex;gap:3mm;align-items:baseline;font-family:"Times New Roman",serif;font-size:10pt}
-  .wipa{color:#2b6cb0}
-  .wsyl{color:#c77700}
-  .wzh{font-size:12pt;margin-top:1mm}
+  .wlines{display:block;width:100%;height:auto;margin-bottom:1mm}
+  .wipa{font-family:"Times New Roman",Georgia,serif;font-size:12pt;color:#2b6cb0;margin-top:1mm}
+  .wpos{display:flex;align-items:baseline;gap:2.5mm;margin-top:.5mm}
+  .posTag{font-size:8.5pt;color:#5b6b7c;background:#eef2f7;border-radius:3px;padding:.5mm 1.5mm;white-space:nowrap}
+  .wzh{font-size:12.5pt}
+  .wsylBig{font-family:"Times New Roman",Georgia,serif;font-size:16pt;color:#c77700;letter-spacing:.5px;margin-top:1mm}
   .wen{font-size:10pt;color:#333;margin-top:auto}
   .wcn{font-size:9pt;color:#777}
   .wtip{font-size:7.5pt;color:#c77700}
@@ -68,7 +71,7 @@
   .dsen{font-size:9.5pt;color:#444;margin:1.5mm 0 0 10mm}
   .dsen .dcn{color:#888;font-size:8.5pt}
   .blank{display:inline-block;min-width:24mm;border-bottom:1px solid #999;text-decoration:none}
-  .dline{border-bottom:1px solid #bbb;height:9mm;margin:2mm 0 0 10mm}
+  .ditem .wlines{width:82mm;margin:2mm 0 0 10mm}
   /* 听写表 */
   .wtable{width:100%;border-collapse:collapse;font-size:10pt}
   .wtable th,.wtable td{border:1px solid #ccc;padding:2mm 2.5mm}
@@ -79,6 +82,7 @@
   .wtable td.ipa{width:34mm;font-family:"Times New Roman",serif;color:#2b6cb0}
   .wtable td.sp{width:44mm}
   .spk{border:0;background:transparent;cursor:pointer;font-size:11pt;padding:0 2px}
+  .wcard>.spk{position:absolute;top:2mm;right:2mm}
   .empty{color:var(--muted);padding:40px 0}
   body[data-mode="dictate"] .only-card,body[data-mode="list"] .only-card{display:none}
   body[data-mode="card"] .only-dictate,body[data-mode="list"] .only-dictate,body[data-mode="quiz"] .only-dictate{display:none}
@@ -174,7 +178,7 @@
       <h2>卡片版式</h2>
       <div class="ctl"><label>每页列数</label><input type="range" id="cols" min="2" max="4" step="1"><span class="val" id="colsV"></span></div>
       <div class="ctl"><label>每页行数</label><input type="range" id="rows" min="2" max="6" step="1"><span class="val" id="rowsV"></span></div>
-      <div class="hint">3 列 × 4 行 = 每页 12 张卡；想给一年级写大字就用 2 × 3。</div>
+      <div class="hint">3 列 × 3 行 = 每页 9 张卡（卡片内容较多，行数别调太大）；想写大字就用 2 列。</div>
     </div>
 
     <div class="grp only-quiz">
@@ -203,6 +207,7 @@
       <h2>卡片上显示什么</h2>
       <div class="checks">
         <label><input type="checkbox" id="ipa">音标</label>
+        <label><input type="checkbox" id="pos">词性</label>
         <label><input type="checkbox" id="syl">拆音节</label>
         <label><input type="checkbox" id="zh">中文</label>
         <label><input type="checkbox" id="en">例句</label>
