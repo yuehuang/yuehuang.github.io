@@ -19,7 +19,7 @@
   var cfg = {
     chars: DEFAULT_CHARS, preset: 'zi', grid: 'tian', paper: 'A4', orient: 'portrait',
     perPage: 3, perRow: 7, cell: 24, gap: 1.6, trace: 0, rows: 2,
-    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0
+    model: 1, numbers: 0, strokes: 1, tips: 1, pinyin: 1, words: 1, title: 1, autoPage: 1, autoCell: 0, autoTips: 0, idioms: 1
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -33,7 +33,7 @@
   var svgTag = function (t) { return document.createElementNS(SVGNS, t); };
 
   /* ---------------- 配置 <-> URL ---------------- */
-  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage', 'autoCell', 'autoTips'];
+  var NUMK = ['perPage', 'perRow', 'cell', 'trace', 'rows'], BOOLK = ['model', 'numbers', 'strokes', 'tips', 'pinyin', 'words', 'title', 'autoPage', 'autoCell', 'autoTips', 'idioms'];
   function readURL() {
     var q = new URLSearchParams(location.search);
     if (q.has('chars')) cfg.chars = q.get('chars');
@@ -202,6 +202,10 @@
     if (cfg.words && info && info.words && info.words.length) {
       meta.appendChild(el('span', '', ' · '));
       meta.appendChild(el('span', 'words', '组词：' + info.words.join('、')));
+    }
+    if (cfg.idioms && info && info.idioms && info.idioms.length) {
+      meta.appendChild(el('span', '', ' · '));
+      meta.appendChild(el('span', 'idioms', '成语：' + info.idioms.join('、')));
     }
     bi.appendChild(meta);
     head.appendChild(bi);
